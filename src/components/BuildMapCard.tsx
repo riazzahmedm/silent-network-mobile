@@ -1,16 +1,22 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { buildMapRows } from '../mock-data';
-import { theme } from '../theme';
+import { AppTheme, useTheme } from '../theme';
 
-const toneMap = {
-  building: theme.colors.building,
-  learning: theme.colors.learning,
-  struggling: theme.colors.struggling,
-  mixed: 'linear',
-  empty: theme.colors.empty,
-} as const;
+function MapCell({
+  tone,
+  theme,
+}: {
+  tone: 'building' | 'learning' | 'struggling' | 'mixed' | 'empty';
+  theme: AppTheme;
+}) {
+  const styles = createStyles(theme);
+  const toneMap = {
+    building: theme.colors.building,
+    learning: theme.colors.learning,
+    struggling: theme.colors.struggling,
+    empty: theme.colors.empty,
+  } as const;
 
-function MapCell({ tone }: { tone: keyof typeof toneMap }) {
   if (tone === 'mixed') {
     return (
       <View style={[styles.cell, styles.mixedCell]}>
@@ -24,6 +30,9 @@ function MapCell({ tone }: { tone: keyof typeof toneMap }) {
 }
 
 export function BuildMapCard() {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.card}>
       <View style={styles.grid}>
@@ -32,7 +41,8 @@ export function BuildMapCard() {
             {row.map((tone, columnIndex) => (
               <MapCell
                 key={`cell-${rowIndex}-${columnIndex}`}
-                tone={tone as keyof typeof toneMap}
+                tone={tone as 'building' | 'learning' | 'struggling' | 'mixed' | 'empty'}
+                theme={theme}
               />
             ))}
           </View>
@@ -40,10 +50,10 @@ export function BuildMapCard() {
       </View>
 
       <View style={styles.legend}>
-        <LegendItem label="Building" color={theme.colors.building} />
-        <LegendItem label="Learning" color={theme.colors.learning} />
-        <LegendItem label="Struggling" color={theme.colors.struggling} />
-        <LegendItem label="Mixed" color={theme.colors.ink} />
+        <LegendItem label="Building" color={theme.colors.building} theme={theme} />
+        <LegendItem label="Learning" color={theme.colors.learning} theme={theme} />
+        <LegendItem label="Struggling" color={theme.colors.struggling} theme={theme} />
+        <LegendItem label="Mixed" color={theme.colors.ink} theme={theme} />
       </View>
 
       <Text style={styles.note}>Progress &gt; perfection</Text>
@@ -51,7 +61,17 @@ export function BuildMapCard() {
   );
 }
 
-function LegendItem({ label, color }: { label: string; color: string }) {
+function LegendItem({
+  label,
+  color,
+  theme,
+}: {
+  label: string;
+  color: string;
+  theme: AppTheme;
+}) {
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.legendItem}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />
@@ -60,59 +80,63 @@ function LegendItem({ label, color }: { label: string; color: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 26,
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-    padding: 18,
-    marginHorizontal: 20,
-    gap: 16,
-  },
-  grid: {
-    gap: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  cell: {
-    height: 32,
-    flex: 1,
-    borderRadius: 10,
-  },
-  mixedCell: {
-    flexDirection: 'row',
-    overflow: 'hidden',
-    backgroundColor: theme.colors.empty,
-  },
-  splitHalf: {
-    flex: 1,
-  },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-  },
-  legendLabel: {
-    fontFamily: theme.fonts.sansRegular,
-    color: theme.colors.muted,
-    fontSize: 12,
-  },
-  note: {
-    fontFamily: theme.fonts.sansMedium,
-    fontSize: 12,
-    color: theme.colors.ink,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    card: {
+      borderRadius: 30,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+      padding: 20,
+      marginHorizontal: 20,
+      gap: 16,
+    },
+    grid: {
+      gap: 8,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    cell: {
+      height: 32,
+      flex: 1,
+      borderRadius: 10,
+    },
+    mixedCell: {
+      flexDirection: 'row',
+      overflow: 'hidden',
+      backgroundColor: theme.colors.empty,
+    },
+    splitHalf: {
+      flex: 1,
+    },
+    legend: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    legendDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 999,
+    },
+    legendLabel: {
+      fontFamily: theme.fonts.sansRegular,
+      color: theme.colors.muted,
+      fontSize: 12,
+    },
+    note: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 12,
+      color: theme.colors.plum,
+      textTransform: 'uppercase',
+      letterSpacing: 1.4,
+    },
+  });
+}

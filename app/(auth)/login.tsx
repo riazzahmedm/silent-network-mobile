@@ -5,10 +5,12 @@ import { useAuth } from '../../src/auth/AuthContext';
 import { AuthButton } from '../../src/components/AuthButton';
 import { AuthField } from '../../src/components/AuthField';
 import { AuthShell } from '../../src/components/AuthShell';
-import { theme } from '../../src/theme';
+import { AppTheme, useTheme } from '../../src/theme';
 
 export default function LoginScreen() {
   const { login, error, clearError, isLoading } = useAuth();
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -60,7 +62,8 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
   error: {
     fontFamily: theme.fonts.sansMedium,
     color: '#A84E3B',
@@ -76,4 +79,5 @@ const styles = StyleSheet.create({
     color: theme.colors.accentBlue,
     fontSize: 14,
   },
-});
+  });
+}

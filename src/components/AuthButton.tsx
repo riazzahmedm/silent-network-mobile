@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import { theme } from '../theme';
+import { AppTheme, useTheme } from '../theme';
 
 type AuthButtonProps = {
   label: string;
@@ -16,6 +16,8 @@ export function AuthButton({
   disabled,
   loading,
 }: AuthButtonProps) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const isPrimary = variant === 'primary';
 
   return (
@@ -44,33 +46,35 @@ export function AuthButton({
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    minHeight: 54,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-  },
-  primaryButton: {
-    backgroundColor: theme.colors.ink,
-  },
-  secondaryButton: {
-    backgroundColor: '#F7F2EA',
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-  },
-  disabled: {
-    opacity: 0.6,
-  },
-  label: {
-    fontFamily: theme.fonts.sansBold,
-    fontSize: 15,
-  },
-  primaryLabel: {
-    color: theme.colors.card,
-  },
-  secondaryLabel: {
-    color: theme.colors.ink,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    button: {
+      minHeight: 54,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 18,
+    },
+    primaryButton: {
+      backgroundColor: theme.colors.ink,
+    },
+    secondaryButton: {
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+    },
+    disabled: {
+      opacity: 0.6,
+    },
+    label: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 15,
+    },
+    primaryLabel: {
+      color: theme.colors.card,
+    },
+    secondaryLabel: {
+      color: theme.colors.ink,
+    },
+  });
+}

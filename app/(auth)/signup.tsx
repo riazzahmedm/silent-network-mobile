@@ -5,10 +5,12 @@ import { useAuth } from '../../src/auth/AuthContext';
 import { AuthButton } from '../../src/components/AuthButton';
 import { AuthField } from '../../src/components/AuthField';
 import { AuthShell } from '../../src/components/AuthShell';
-import { theme } from '../../src/theme';
+import { AppTheme, useTheme } from '../../src/theme';
 
 export default function SignupScreen() {
   const { signup, error, clearError, isLoading } = useAuth();
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -79,7 +81,8 @@ export default function SignupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
   error: {
     fontFamily: theme.fonts.sansMedium,
     color: '#A84E3B',
@@ -95,4 +98,5 @@ const styles = StyleSheet.create({
     color: theme.colors.accentBlue,
     fontSize: 14,
   },
-});
+  });
+}

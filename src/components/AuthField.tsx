@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { theme } from '../theme';
+import { AppTheme, useTheme } from '../theme';
 
 type AuthFieldProps = {
   label: string;
@@ -20,6 +20,9 @@ export function AuthField({
   autoCapitalize = 'none',
   keyboardType = 'default',
 }: AuthFieldProps) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -27,7 +30,7 @@ export function AuthField({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#8C968E"
+        placeholderTextColor={theme.mode === 'dark' ? '#8E8A84' : '#8C968E'}
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
@@ -37,24 +40,26 @@ export function AuthField({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    gap: 8,
-  },
-  label: {
-    fontFamily: theme.fonts.sansMedium,
-    fontSize: 13,
-    color: theme.colors.ink,
-  },
-  input: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-    backgroundColor: '#FBF7F1',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    fontFamily: theme.fonts.sansRegular,
-    fontSize: 15,
-    color: theme.colors.ink,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    container: {
+      gap: 8,
+    },
+    label: {
+      fontFamily: theme.fonts.sansMedium,
+      fontSize: 13,
+      color: theme.colors.ink,
+    },
+    input: {
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+      backgroundColor: theme.colors.cardMuted,
+      paddingHorizontal: 16,
+      paddingVertical: 15,
+      fontFamily: theme.fonts.sansRegular,
+      fontSize: 15,
+      color: theme.colors.ink,
+    },
+  });
+}

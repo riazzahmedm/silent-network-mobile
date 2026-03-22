@@ -12,9 +12,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { AuthProvider, useAuth } from '../src/auth/AuthContext';
-import { theme } from '../src/theme';
+import { ThemeProvider, useTheme } from '../src/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,50 +39,54 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <RootNavigator />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
 function RootNavigator() {
   const { isLoading, user } = useAuth();
+  const { theme, isDark } = useTheme();
 
   if (isLoading) {
     return (
-      <View style={styles.loadingScreen}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: theme.colors.paper,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <ActivityIndicator size="large" color={theme.colors.ink} />
       </View>
     );
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: {
-          backgroundColor: theme.colors.paper,
-        },
-        animation: 'fade',
-      }}
-    >
-      <Stack.Protected guard={!user}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-      <Stack.Protected guard={!!user}>
-        <Stack.Screen name="(tabs)" />
-      </Stack.Protected>
-      <Stack.Screen name="+not-found" />
-    </Stack>
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: theme.colors.paper,
+          },
+          animation: 'fade',
+        }}
+      >
+        <Stack.Protected guard={!user}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        <Stack.Protected guard={!!user}>
+          <Stack.Screen name="(tabs)" />
+        </Stack.Protected>
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingScreen: {
-    flex: 1,
-    backgroundColor: theme.colors.paper,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
