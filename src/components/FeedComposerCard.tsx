@@ -1,16 +1,28 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { theme } from '../theme';
-
-const options = [
-  { label: 'Building', icon: 'hammer-outline', tone: theme.colors.building },
-  { label: 'Learning', icon: 'book-outline', tone: theme.colors.learning },
-  { label: 'Struggling', icon: 'construct-outline', tone: theme.colors.struggling },
-] as const;
+import { AppTheme, useTheme } from '../theme';
 
 export function FeedComposerCard() {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
+  const options = [
+    { label: 'Building', icon: 'hammer-outline', tone: theme.colors.building },
+    { label: 'Learning', icon: 'book-outline', tone: theme.colors.learning },
+    { label: 'Struggling', icon: 'construct-outline', tone: theme.colors.struggling },
+  ] as const;
+
   return (
-    <View style={styles.card}>
+    <LinearGradient
+      colors={[theme.colors.night, theme.colors.nightSoft, '#46564B']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.card}
+    >
+      <View style={styles.topRow}>
+        <Text style={styles.kicker}>Start Here</Text>
+        <View style={styles.orbital} />
+      </View>
       <Text style={styles.title}>Share a signal</Text>
       <Text style={styles.copy}>
         Start with what is true today. The app handles the structure.
@@ -26,55 +38,77 @@ export function FeedComposerCard() {
           </TouchableOpacity>
         ))}
       </View>
-    </View>
+    </LinearGradient>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginHorizontal: 20,
-    marginTop: -18,
-    borderRadius: 26,
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.line,
-    padding: 18,
-    ...theme.shadows.soft,
-  },
-  title: {
-    fontFamily: theme.fonts.sansBold,
-    fontSize: 16,
-    color: theme.colors.ink,
-    marginBottom: 6,
-  },
-  copy: {
-    fontFamily: theme.fonts.sansRegular,
-    fontSize: 14,
-    lineHeight: 22,
-    color: theme.colors.muted,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
-  },
-  option: {
-    flex: 1,
-    borderRadius: 18,
-    backgroundColor: '#FAF6F0',
-    padding: 12,
-    gap: 10,
-  },
-  optionIcon: {
-    height: 34,
-    width: 34,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionLabel: {
-    fontFamily: theme.fonts.sansMedium,
-    color: theme.colors.ink,
-    fontSize: 13,
-  },
-});
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
+    card: {
+      marginHorizontal: 20,
+      marginTop: -10,
+      borderRadius: 26,
+      borderWidth: 1,
+      borderColor: theme.mode === 'dark' ? '#324036' : theme.colors.line,
+      padding: 22,
+      ...theme.shadows.float,
+    },
+    topRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    kicker: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 11,
+      letterSpacing: 2.2,
+      textTransform: 'uppercase',
+      color: theme.colors.amber,
+    },
+    orbital: {
+      height: 12,
+      width: 12,
+      borderRadius: 999,
+      backgroundColor: theme.colors.amber,
+    },
+    title: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 17,
+      color: theme.colors.card,
+      marginBottom: 8,
+    },
+    copy: {
+      fontFamily: theme.fonts.sansRegular,
+      fontSize: 14,
+      lineHeight: 24,
+      color: theme.colors.heroSubtleText,
+    },
+    row: {
+      flexDirection: 'row',
+      gap: 12,
+      marginTop: 20,
+    },
+    option: {
+      flex: 1,
+      borderRadius: 18,
+      backgroundColor: theme.colors.overlay,
+      borderWidth: 1,
+      borderColor: theme.colors.overlayStrong,
+      padding: 14,
+      gap: 12,
+    },
+    optionIcon: {
+      height: 34,
+      width: 34,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    optionLabel: {
+      fontFamily: theme.fonts.sansMedium,
+      color: theme.colors.card,
+      fontSize: 13,
+    },
+  });
+}

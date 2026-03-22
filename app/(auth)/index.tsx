@@ -3,10 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AuthButton } from '../../src/components/AuthButton';
 import { AuthShell } from '../../src/components/AuthShell';
 import { useAuth } from '../../src/auth/AuthContext';
-import { theme } from '../../src/theme';
+import { AppTheme, useTheme } from '../../src/theme';
 
 export default function WelcomeScreen() {
   const { loginWithOAuth, isLoading } = useAuth();
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
 
   return (
     <AuthShell
@@ -57,7 +59,8 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(theme: AppTheme) {
+  return StyleSheet.create({
   copyBlock: {
     gap: 8,
   },
@@ -82,4 +85,5 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     fontSize: 14,
   },
-});
+  });
+}
