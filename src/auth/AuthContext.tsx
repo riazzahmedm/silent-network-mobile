@@ -1,0 +1,226 @@
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
+import {
+  createContext,
+  PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { api, ApiError } from '../lib/api';
+import type {
+  AuthResponse,
+  AuthUser,
+  LoginPayload,
+  SignupPayload,
+} from '../types/auth';
+import {
+  clearStoredAccessToken,
+  getStoredAccessToken,
+  setStoredAccessToken,
+} from './storage';
+
+WebBrowser.maybeCompleteAuthSession();
+
+type AuthContextValue = {
+  accessToken: string | null;
+  user: AuthUser | null;
+  isLoading: boolean;
+  error: string | null;
+  login: (payload: LoginPayload) => Promise<void>;
+  signup: (payload: SignupPayload) => Promise<void>;
+  logout: () => Promise<void>;
+  clearError: () => void;
+  loginWithOAuth: (provider: 'google' | 'github' | 'apple') => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+function extractAuthResponseFromUrl(url: string) {
+  const [base, hash = ''] = url.split('#');
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token');
+  const tokenType = params.get('token_type');
+  const expiresIn = params.get('expires_in');
+
+  if (!accessToken || !tokenType || !expiresIn) {
+    throw new Error(`Invalid auth callback: ${base}`);
+  }
+
+  return {
+    accessToken,
+    tokenType,
+    expiresIn: Number(expiresIn),
+  };
+}
+
+export function AuthProvider({ children }: PropsWithChildren) {
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function bootstrap() {
+      try {
+        const storedToken = await getStoredAccessToken();
+        if (!storedToken) {
+          return;
+        }
+
+        const session = await api.session(storedToken);
+        if (!isMounted) {
+          return;
+        }
+
+        setAccessToken(storedToken);
+        setUser(session.user);
+      } catch {
+        await clearStoredAccessToken();
+        if (!isMounted) {
+          return;
+        }
+        setAccessToken(null);
+        setUser(null);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    bootstrap();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const persistAuth = useCallback(async (auth: AuthResponse) => {
+    await setStoredAccessToken(auth.accessToken);
+    setAccessToken(auth.accessToken);
+    setUser(auth.user);
+    setError(null);
+  }, []);
+
+  const login = useCallback(
+    async (payload: LoginPayload) => {
+      setIsLoading(true);
+      try {
+        const auth = await api.login(payload);
+        await persistAuth(auth);
+      } catch (err) {
+        setError(
+          err instanceof ApiError ? err.message : 'Login failed. Try again.',
+        );
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [persistAuth],
+  );
+
+  const signup = useCallback(
+    async (payload: SignupPayload) => {
+      setIsLoading(true);
+      try {
+        const auth = await api.signup(payload);
+        await persistAuth(auth);
+      } catch (err) {
+        setError(
+          err instanceof ApiError ? err.message : 'Signup failed. Try again.',
+        );
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [persistAuth],
+  );
+
+  const loginWithOAuth = useCallback(
+    async (provider: 'google' | 'github' | 'apple') => {
+      setIsLoading(true);
+      try {
+        const redirectUri = Linking.createURL('/auth/callback');
+        const { url } = await api.oauthUrl(provider, redirectUri);
+        const result = await WebBrowser.openAuthSessionAsync(url, redirectUri);
+
+        if (result.type !== 'success' || !result.url) {
+          if (result.type !== 'cancel') {
+            setError('OAuth login did not complete.');
+          }
+          return;
+        }
+
+        const auth = extractAuthResponseFromUrl(result.url);
+        const session = await api.session(auth.accessToken);
+
+        await setStoredAccessToken(auth.accessToken);
+        setAccessToken(auth.accessToken);
+        setUser(session.user);
+        setError(null);
+      } catch (err) {
+        setError(
+          err instanceof ApiError ? err.message : 'OAuth login failed. Try again.',
+        );
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const logout = useCallback(async () => {
+    await clearStoredAccessToken();
+    setAccessToken(null);
+    setUser(null);
+    setError(null);
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      accessToken,
+      user,
+      isLoading,
+      error,
+      login,
+      signup,
+      logout,
+      clearError,
+      loginWithOAuth,
+    }),
+    [
+      accessToken,
+      user,
+      isLoading,
+      error,
+      login,
+      signup,
+      logout,
+      clearError,
+      loginWithOAuth,
+    ],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+
+  return context;
+}

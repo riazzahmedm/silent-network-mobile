@@ -1,11 +1,14 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../src/auth/AuthContext';
 import { BuildMapMiniCard } from '../../src/components/BuildMapMiniCard';
 import { profileHighlights, profileSignals } from '../../src/mock-data';
 import { theme } from '../../src/theme';
 
 export default function ProfileScreen() {
+  const { user, logout } = useAuth();
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -14,14 +17,16 @@ export default function ProfileScreen() {
           style={styles.hero}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.avatar}>
-            <Text style={styles.avatarLabel}>RA</Text>
+          >
+            <View style={styles.avatar}>
+            <Text style={styles.avatarLabel}>
+              {(user?.name || user?.username || 'SN').slice(0, 2).toUpperCase()}
+            </Text>
           </View>
-          <Text style={styles.name}>Riaz Ahmed</Text>
+          <Text style={styles.name}>{user?.name || user?.username || 'Silent User'}</Text>
           <Text style={styles.role}>Builder</Text>
           <Text style={styles.bio}>
-            Building calm software for people who want signal, not status.
+            {user?.email || 'Building calm software for people who want signal, not status.'}
           </Text>
         </LinearGradient>
 
@@ -45,6 +50,10 @@ export default function ProfileScreen() {
         </View>
 
         <BuildMapMiniCard />
+
+        <Pressable style={styles.logoutButton} onPress={logout}>
+          <Text style={styles.logoutLabel}>Log out</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -150,5 +159,19 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.sansRegular,
     fontSize: 14,
     color: theme.colors.muted,
+  },
+  logoutButton: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.line,
+    backgroundColor: '#FBF7F1',
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutLabel: {
+    fontFamily: theme.fonts.sansBold,
+    color: theme.colors.ink,
+    fontSize: 14,
   },
 });
