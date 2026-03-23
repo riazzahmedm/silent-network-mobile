@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppTheme, useTheme } from '../theme';
 
 type ThreadPreview = {
@@ -12,10 +12,12 @@ type ThreadPreview = {
 
 type ConversationPreviewCardProps = {
   thread: ThreadPreview;
+  onPress?: () => void;
 };
 
 export function ConversationPreviewCard({
   thread,
+  onPress,
 }: ConversationPreviewCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -27,14 +29,14 @@ export function ConversationPreviewCard({
   const accent = accentMap[thread.accent];
 
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.topRow}>
         <Text style={[styles.badge, { color: accent }]}>{thread.title}</Text>
         <Text style={styles.time}>{thread.time}</Text>
       </View>
       <Text style={styles.name}>{thread.name}</Text>
       <Text style={styles.snippet}>{thread.snippet}</Text>
-    </View>
+    </Pressable>
   );
 }
 

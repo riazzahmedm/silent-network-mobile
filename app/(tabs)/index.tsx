@@ -1,5 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -19,11 +22,22 @@ import { FeedComposerCard } from '../../src/components/FeedComposerCard';
 import { FeedPostCard } from '../../src/components/FeedPostCard';
 import { SectionHeading } from '../../src/components/SectionHeading';
 import { api, ApiError } from '../../src/lib/api';
-import type { FeedPost, PostType } from '../../src/types/feed';
+import type { FeedPost, PostType, UploadableMediaType } from '../../src/types/feed';
+import type { InteractionType } from '../../src/types/messaging';
 import { AppTheme, useTheme } from '../../src/theme';
+import { useToast } from '../../src/toast/ToastContext';
+
+type PendingAttachment = {
+  id: string;
+  uri: string;
+  name: string;
+  mimeType: string;
+  mediaType: UploadableMediaType;
+};
 
 export default function FeedScreen() {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
+  const { showToast } = useToast();
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const [selectedType, setSelectedType] = useState<PostType | undefined>();
@@ -39,6 +53,9 @@ export default function FeedScreen() {
   const [composerContent, setComposerContent] = useState('');
   const [composerError, setComposerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [interactionError, setInteractionError] = useState<string | null>(null);
+  const [activeInteractionPostId, setActiveInteractionPostId] = useState<string | null>(null);
 
   const filters = useMemo(
     () => [
@@ -97,12 +114,82 @@ export default function FeedScreen() {
     setComposerType(type ?? selectedType ?? 'BUILDING');
     setComposerContent('');
     setComposerError(null);
+    setPendingAttachments([]);
     setIsComposerOpen(true);
+  }
+
+  async function handlePickLibraryMedia() {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setComposerError('Media library permission is required to attach images or videos.');
+      showToast({
+        title: 'Permission required',
+        message: 'Allow photo library access to attach images or videos.',
+        type: 'error',
+      });
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: true,
+      quality: 1,
+    });
+
+    if (result.canceled || !result.assets?.length) {
+      return;
+    }
+
+    const nextAttachments: PendingAttachment[] = result.assets
+      .filter((asset) => asset.uri && asset.mimeType)
+      .map((asset, index) => ({
+        id: `${asset.assetId ?? asset.uri}-${index}`,
+        uri: asset.uri,
+        name: asset.fileName || `media-${Date.now()}-${index}`,
+        mimeType: asset.mimeType || 'application/octet-stream',
+        mediaType: asset.type === 'video' ? 'VIDEO' : 'IMAGE',
+      }));
+
+    setPendingAttachments((current) => [...current, ...nextAttachments]);
+    setComposerError(null);
+  }
+
+  async function handlePickDocument() {
+    const result = await DocumentPicker.getDocumentAsync({
+      multiple: true,
+      copyToCacheDirectory: true,
+    });
+
+    if (result.canceled || !result.assets?.length) {
+      return;
+    }
+
+    const nextAttachments: PendingAttachment[] = result.assets
+      .filter((asset) => asset.uri && asset.mimeType)
+      .map((asset, index) => ({
+        id: `${asset.uri}-${index}`,
+        uri: asset.uri,
+        name: asset.name,
+        mimeType: asset.mimeType || 'application/octet-stream',
+        mediaType: 'FILE',
+      }));
+
+    setPendingAttachments((current) => [...current, ...nextAttachments]);
+    setComposerError(null);
+  }
+
+  function removePendingAttachment(id: string) {
+    setPendingAttachments((current) => current.filter((item) => item.id !== id));
   }
 
   async function handleSubmitPost() {
     if (!accessToken) {
       setComposerError('You must be logged in to post.');
+      showToast({
+        title: 'Login required',
+        message: 'Sign in to publish a signal.',
+        type: 'error',
+      });
       return;
     }
 
@@ -116,22 +203,93 @@ export default function FeedScreen() {
     setComposerError(null);
 
     try {
-      await api.createPost(
+      const createdPost = await api.createPost(
         {
           type: composerType,
           content: trimmedContent,
         },
         accessToken,
       );
+
+      let uploadedCount = 0;
+      for (const attachment of pendingAttachments) {
+        await api.uploadMedia(
+          {
+            postId: createdPost.id,
+            type: attachment.mediaType,
+            file: {
+              uri: attachment.uri,
+              name: attachment.name,
+              mimeType: attachment.mimeType,
+            },
+          },
+          accessToken,
+        );
+        uploadedCount += 1;
+      }
+
       setIsComposerOpen(false);
       setComposerContent('');
+      setPendingAttachments([]);
+      showToast({
+        title: 'Signal published',
+        message:
+          uploadedCount > 0
+            ? `Your update and ${uploadedCount} attachment${uploadedCount > 1 ? 's are' : ' is'} now in the feed.`
+            : 'Your update is now in the feed.',
+        type: 'success',
+      });
       await loadFeed({ refresh: true });
     } catch (error) {
-      setComposerError(
-        error instanceof ApiError ? error.message : 'Failed to publish post.',
-      );
+      const message =
+        error instanceof ApiError ? error.message : 'Failed to publish post.';
+      setComposerError(message);
+      showToast({
+        title: 'Publish failed',
+        message,
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleInteraction(post: FeedPost, type: InteractionType) {
+    if (!accessToken) {
+      setInteractionError('You must be logged in to respond privately.');
+      showToast({
+        title: 'Login required',
+        message: 'Sign in to start a private conversation.',
+        type: 'error',
+      });
+      return;
+    }
+
+    setActiveInteractionPostId(post.id);
+    setInteractionError(null);
+
+    try {
+      const response = await api.createInteraction(
+        {
+          postId: post.id,
+          type,
+        },
+        accessToken,
+      );
+      router.push(`/${'conversations'}/${response.conversation.id}`);
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.message
+          : 'Failed to open the private conversation.';
+      setInteractionError(message);
+      showToast({
+        title: 'Conversation failed',
+        message,
+        type: 'error',
+      });
+    } finally {
+      setActiveInteractionPostId(null);
     }
   }
 
@@ -206,6 +364,12 @@ export default function FeedScreen() {
           detail="Private responses turn posts into conversations, not performances."
         />
 
+        {interactionError ? (
+          <View style={styles.inlineErrorCard}>
+            <Text style={styles.inlineErrorText}>{interactionError}</Text>
+          </View>
+        ) : null}
+
         {isInitialLoading ? (
           <View style={styles.stateCard}>
             <ActivityIndicator size="small" color={theme.colors.ink} />
@@ -232,7 +396,13 @@ export default function FeedScreen() {
         ) : (
           <View style={styles.postsColumn}>
             {posts.map((post) => (
-              <FeedPostCard key={post.id} post={post} />
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                onActionPress={handleInteraction}
+                disabled={activeInteractionPostId === post.id}
+                hideActions={post.userId === user?.id}
+              />
             ))}
 
             {hasMore ? (
@@ -306,6 +476,43 @@ export default function FeedScreen() {
               style={styles.modalInput}
             />
 
+            <View style={styles.attachmentActions}>
+              <TouchableOpacity
+                style={styles.attachmentPickerButton}
+                onPress={handlePickLibraryMedia}
+                disabled={isSubmitting}
+              >
+                <Ionicons name="images-outline" size={16} color={theme.colors.ink} />
+                <Text style={styles.attachmentPickerLabel}>Photo or Video</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.attachmentPickerButton}
+                onPress={handlePickDocument}
+                disabled={isSubmitting}
+              >
+                <Ionicons name="document-outline" size={16} color={theme.colors.ink} />
+                <Text style={styles.attachmentPickerLabel}>File</Text>
+              </TouchableOpacity>
+            </View>
+
+            {pendingAttachments.length > 0 ? (
+              <View style={styles.attachmentList}>
+                {pendingAttachments.map((attachment) => (
+                  <View key={attachment.id} style={styles.attachmentItem}>
+                    <View style={styles.attachmentItemCopy}>
+                      <Text style={styles.attachmentName} numberOfLines={1}>
+                        {attachment.name}
+                      </Text>
+                      <Text style={styles.attachmentMeta}>{attachment.mediaType}</Text>
+                    </View>
+                    <Pressable onPress={() => removePendingAttachment(attachment.id)}>
+                      <Ionicons name="close-circle" size={18} color={theme.colors.muted} />
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+
             <View style={styles.modalFooter}>
               <Text style={styles.characterCount}>{composerContent.trim().length}/2000</Text>
               <TouchableOpacity
@@ -358,6 +565,7 @@ function createStyles(theme: AppTheme) {
       borderRadius: 999,
       backgroundColor:
         theme.mode === 'dark' ? 'rgba(197,141,61,0.14)' : 'rgba(243,216,199,0.60)',
+      opacity: 0.5
     },
     heroAuraTwo: {
       position: 'absolute',
@@ -368,6 +576,7 @@ function createStyles(theme: AppTheme) {
       borderRadius: 999,
       backgroundColor:
         theme.mode === 'dark' ? 'rgba(79,124,130,0.12)' : 'rgba(79,124,130,0.10)',
+      opacity: 0.5
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -463,6 +672,21 @@ function createStyles(theme: AppTheme) {
       lineHeight: 23,
       color: theme.colors.muted,
     },
+    inlineErrorCard: {
+      marginHorizontal: 20,
+      borderRadius: 18,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: '#D7B4A8',
+    },
+    inlineErrorText: {
+      fontFamily: theme.fonts.sansMedium,
+      fontSize: 13,
+      lineHeight: 20,
+      color: '#A84E3B',
+    },
     retryButton: {
       marginTop: 4,
       borderRadius: 999,
@@ -550,6 +774,56 @@ function createStyles(theme: AppTheme) {
       fontSize: 15,
       lineHeight: 24,
       color: theme.colors.ink,
+    },
+    attachmentActions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 10,
+    },
+    attachmentPickerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+    },
+    attachmentPickerLabel: {
+      fontFamily: theme.fonts.sansMedium,
+      fontSize: 13,
+      color: theme.colors.ink,
+    },
+    attachmentList: {
+      gap: 8,
+    },
+    attachmentItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      borderRadius: 16,
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    attachmentItemCopy: {
+      flex: 1,
+      gap: 2,
+    },
+    attachmentName: {
+      fontFamily: theme.fonts.sansMedium,
+      fontSize: 13,
+      color: theme.colors.ink,
+    },
+    attachmentMeta: {
+      fontFamily: theme.fonts.sansRegular,
+      fontSize: 12,
+      color: theme.colors.muted,
     },
     modalFooter: {
       flexDirection: 'row',

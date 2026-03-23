@@ -1,8 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { buildMapRows } from '../mock-data';
 import { AppTheme, useTheme } from '../theme';
 
-export function BuildMapMiniCard() {
+type BuildMapMiniCardProps = {
+  rows: Array<Array<'building' | 'learning' | 'struggling' | 'mixed' | 'empty'>>;
+};
+
+export function BuildMapMiniCard({ rows }: BuildMapMiniCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const colorMap = {
@@ -19,7 +22,7 @@ export function BuildMapMiniCard() {
       <Text style={styles.title}>A visual diary of recent signal days</Text>
 
       <View style={styles.grid}>
-        {buildMapRows.map((row, rowIndex) => (
+        {rows.map((row, rowIndex) => (
           <View key={`mini-row-${rowIndex}`} style={styles.row}>
             {row.map((tone, columnIndex) => (
               <View

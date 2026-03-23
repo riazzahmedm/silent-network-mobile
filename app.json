@@ -29,7 +29,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Silent Network to access your library so you can attach progress screenshots and videos."
+        }
+      ],
+      "expo-document-picker"
     ]
   }
 }

@@ -8,6 +8,8 @@ export type PostMedia = {
   createdAt: string;
 };
 
+export type UploadableMediaType = PostMedia['type'];
+
 export type PostAuthor = {
   id: string;
   username: string;

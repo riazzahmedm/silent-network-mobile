@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { buildMapRows } from '../mock-data';
+import type { BuildMapDay } from '../types/signals';
 import { AppTheme, useTheme } from '../theme';
 
 function MapCell({
@@ -29,14 +29,18 @@ function MapCell({
   return <View style={[styles.cell, { backgroundColor: toneMap[tone] }]} />;
 }
 
-export function BuildMapCard() {
+type BuildMapCardProps = {
+  rows: Array<Array<'building' | 'learning' | 'struggling' | 'mixed' | 'empty'>>;
+};
+
+export function BuildMapCard({ rows }: BuildMapCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
   return (
     <View style={styles.card}>
       <View style={styles.grid}>
-        {buildMapRows.map((row, rowIndex) => (
+        {rows.map((row, rowIndex) => (
           <View key={`row-${rowIndex}`} style={styles.row}>
             {row.map((tone, columnIndex) => (
               <MapCell
@@ -139,4 +143,38 @@ function createStyles(theme: AppTheme) {
       letterSpacing: 1.4,
     },
   });
+}
+
+export function buildMapRowsFromDays(days: BuildMapDay[]) {
+  const tones = days.map((day) => toCellTone(day));
+  const rows: Array<
+    Array<'building' | 'learning' | 'struggling' | 'mixed' | 'empty'>
+  > = [];
+
+  for (let index = 0; index < tones.length; index += 7) {
+    rows.push(tones.slice(index, index + 7));
+  }
+
+  return rows;
+}
+
+function toCellTone(
+  day: BuildMapDay,
+): 'building' | 'learning' | 'struggling' | 'mixed' | 'empty' {
+  if (!day.hasSignal || !day.entry) {
+    return 'empty';
+  }
+
+  switch (day.entry.visualKind) {
+    case 'BUILDING':
+      return 'building';
+    case 'LEARNING':
+      return 'learning';
+    case 'STRUGGLING':
+      return 'struggling';
+    case 'MIXED':
+      return 'mixed';
+    default:
+      return 'empty';
+  }
 }

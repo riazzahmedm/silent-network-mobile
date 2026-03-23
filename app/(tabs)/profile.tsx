@@ -1,19 +1,118 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/auth/AuthContext';
+import { buildMapRowsFromDays } from '../../src/components/BuildMapCard';
 import { BuildMapMiniCard } from '../../src/components/BuildMapMiniCard';
-import { profileHighlights, profileSignals } from '../../src/mock-data';
+import { api, ApiError } from '../../src/lib/api';
+import type { BuildMapResponse, SignalsResponse } from '../../src/types/signals';
 import { AppTheme, useTheme } from '../../src/theme';
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
+  const { accessToken, user, logout } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
   const styles = createStyles(theme);
+  const [signals, setSignals] = useState<SignalsResponse | null>(null);
+  const [buildMap, setBuildMap] = useState<BuildMapResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = useCallback(
+    async (refresh = false) => {
+      if (!accessToken) {
+        setError('You must be logged in to view your profile.');
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
+
+      if (refresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
+
+      try {
+        setError(null);
+        const [signalsResponse, buildMapResponse] = await Promise.all([
+          api.getMySignals(accessToken),
+          api.getMyBuildMap(accessToken, 28),
+        ]);
+        setSignals(signalsResponse);
+        setBuildMap(buildMapResponse);
+      } catch (err) {
+        setError(
+          err instanceof ApiError ? err.message : 'Failed to load your profile.',
+        );
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [accessToken],
+  );
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const buildMapRows = useMemo(
+    () => buildMapRowsFromDays(buildMap?.days ?? []),
+    [buildMap],
+  );
+
+  const profileName = signals?.user.name || user?.name || signals?.user.username || user?.username || 'Silent User';
+  const profileHandle = signals?.user.username || user?.username || 'silent';
+  const heroInitials = profileName.slice(0, 2).toUpperCase();
+  const highlights = useMemo(() => {
+    const topTopic =
+      signals?.topLearningTopics?.[0]
+        ? signals.topLearningTopics[0]
+            .split(/[\s_-]+/)
+            .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+            .join(' ')
+        : 'No topic yet';
+
+    return [
+      {
+        title: 'Builder signal',
+        value: `${signals?.builderSignal.value ?? 0} ${signals?.builderSignal.unit ?? 'days'}`,
+      },
+      {
+        title: 'Top learning topic',
+        value: topTopic,
+      },
+      {
+        title: 'Journey window',
+        value: `${buildMap?.range.days ?? 0} days`,
+      },
+    ];
+  }, [buildMap?.range.days, signals]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadData(true)}
+            tintColor={theme.colors.ink}
+          />
+        }
+      >
         <LinearGradient
           colors={[theme.colors.blush, theme.colors.paper, theme.colors.paperDeep]}
           style={styles.hero}
@@ -30,37 +129,59 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.avatar}>
-            <Text style={styles.avatarLabel}>
-              {(user?.name || user?.username || 'SN').slice(0, 2).toUpperCase()}
-            </Text>
+            <Text style={styles.avatarLabel}>{heroInitials}</Text>
           </View>
-          <Text style={styles.name}>{user?.name || user?.username || 'Silent User'}</Text>
-          <Text style={styles.role}>Builder</Text>
+          <Text style={styles.name}>{profileName}</Text>
+          <Text style={styles.role}>@{profileHandle}</Text>
           <Text style={styles.bio}>
             {user?.email || 'Building calm software for people who want signal, not status.'}
           </Text>
         </LinearGradient>
 
-        <View style={styles.metricsRow}>
-          {profileSignals.map((signal) => (
-            <View key={signal.title} style={styles.metricTile}>
-              <Text style={styles.metricValue}>{signal.value}</Text>
-              <Text style={styles.metricLabel}>{signal.title}</Text>
+        {isLoading ? (
+          <View style={styles.stateCard}>
+            <ActivityIndicator size="small" color={theme.colors.ink} />
+            <Text style={styles.stateText}>Loading profile…</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.stateCard}>
+            <Text style={styles.stateTitle}>Profile unavailable</Text>
+            <Text style={styles.stateText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => loadData(true)}
+            >
+              <Text style={styles.retryLabel}>Try again</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <View style={styles.metricsRow}>
+              {[
+                signals?.builderSignal,
+                signals?.learningSignal,
+                signals?.struggleSignal,
+              ].map((signal) => (
+                <View key={signal?.label} style={styles.metricTile}>
+                  <Text style={styles.metricValue}>{signal?.value ?? 0}</Text>
+                  <Text style={styles.metricLabel}>{signal?.label}</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionEyebrow}>Highlights</Text>
-          {profileHighlights.map((highlight) => (
-            <View key={highlight.title} style={styles.highlightRow}>
-              <Text style={styles.highlightTitle}>{highlight.title}</Text>
-              <Text style={styles.highlightValue}>{highlight.value}</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionEyebrow}>Highlights</Text>
+              {highlights.map((highlight) => (
+                <View key={highlight.title} style={styles.highlightRow}>
+                  <Text style={styles.highlightTitle}>{highlight.title}</Text>
+                  <Text style={styles.highlightValue}>{highlight.value}</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
 
-        <BuildMapMiniCard />
+            <BuildMapMiniCard rows={buildMapRows} />
+          </>
+        )}
 
         <Pressable style={styles.logoutButton} onPress={logout}>
           <Text style={styles.logoutLabel}>Log out</Text>
@@ -224,6 +345,37 @@ function createStyles(theme: AppTheme) {
       fontFamily: theme.fonts.sansBold,
       color: theme.colors.ink,
       fontSize: 14,
+    },
+    stateCard: {
+      borderRadius: 24,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+      padding: 22,
+      gap: 10,
+    },
+    stateTitle: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 16,
+      color: theme.colors.ink,
+    },
+    stateText: {
+      fontFamily: theme.fonts.sansRegular,
+      fontSize: 14,
+      lineHeight: 23,
+      color: theme.colors.muted,
+    },
+    retryButton: {
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: theme.colors.ink,
+    },
+    retryLabel: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 13,
+      color: theme.colors.card,
     },
   });
 }

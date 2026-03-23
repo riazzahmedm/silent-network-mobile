@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { AuthProvider, useAuth } from '../src/auth/AuthContext';
 import { ThemeProvider, useTheme } from '../src/theme';
+import { ToastProvider } from '../src/toast/ToastContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,9 +41,11 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <RootNavigator />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }
