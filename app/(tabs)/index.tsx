@@ -22,6 +22,7 @@ import { FeedComposerCard } from '../../src/components/FeedComposerCard';
 import { FeedPostCard } from '../../src/components/FeedPostCard';
 import { SectionHeading } from '../../src/components/SectionHeading';
 import { api, ApiError } from '../../src/lib/api';
+import { usePostMutations } from '../../src/posts/PostMutationsContext';
 import type { FeedPost, PostType, UploadableMediaType } from '../../src/types/feed';
 import type { InteractionType } from '../../src/types/messaging';
 import { AppTheme, useTheme } from '../../src/theme';
@@ -37,6 +38,7 @@ type PendingAttachment = {
 
 export default function FeedScreen() {
   const { accessToken, user } = useAuth();
+  const { lastMutation } = usePostMutations();
   const { showToast } = useToast();
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -109,6 +111,30 @@ export default function FeedScreen() {
   useEffect(() => {
     loadFeed();
   }, [loadFeed]);
+
+  useEffect(() => {
+    if (!lastMutation) {
+      return;
+    }
+
+    setPosts((current) => {
+      if (lastMutation.kind === 'deleted') {
+        return current.filter((post) => post.id !== lastMutation.postId);
+      }
+
+      return current.flatMap((post) => {
+        if (post.id !== lastMutation.post.id) {
+          return [post];
+        }
+
+        if (selectedType && lastMutation.post.type !== selectedType) {
+          return [];
+        }
+
+        return [lastMutation.post];
+      });
+    });
+  }, [lastMutation, selectedType]);
 
   function openComposer(type?: PostType) {
     setComposerType(type ?? selectedType ?? 'BUILDING');
@@ -399,6 +425,7 @@ export default function FeedScreen() {
               <FeedPostCard
                 key={post.id}
                 post={post}
+                onPress={(selectedPost) => router.push(`/${'posts'}/${selectedPost.id}`)}
                 onActionPress={handleInteraction}
                 disabled={activeInteractionPostId === post.id}
                 hideActions={post.userId === user?.id}

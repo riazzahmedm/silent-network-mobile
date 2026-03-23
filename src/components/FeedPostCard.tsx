@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { resolveMediaUrl } from '../lib/api';
 import type { FeedPost, PostType } from '../types/feed';
 import type { InteractionType } from '../types/messaging';
 import { AppTheme, useTheme } from '../theme';
@@ -8,6 +9,7 @@ import { AppTheme, useTheme } from '../theme';
 type FeedPostCardProps = {
   post: FeedPost;
   onActionPress?: (post: FeedPost, type: InteractionType) => void;
+  onPress?: (post: FeedPost) => void;
   disabled?: boolean;
   hideActions?: boolean;
 };
@@ -15,6 +17,7 @@ type FeedPostCardProps = {
 export function FeedPostCard({
   post,
   onActionPress,
+  onPress,
   disabled,
   hideActions,
 }: FeedPostCardProps) {
@@ -43,6 +46,8 @@ export function FeedPostCard({
     ],
   };
   const actions = actionMap[post.type];
+  const imageMedia = post.media.filter((item) => item.type === 'IMAGE');
+  const nonImageMediaCount = post.media.length - imageMedia.length;
 
   return (
     <View style={styles.card}>
@@ -52,33 +57,46 @@ export function FeedPostCard({
         end={{ x: 1, y: 1 }}
         style={styles.cardGlow}
       />
-      <View style={styles.topRow}>
-        <View style={[styles.typePill, { backgroundColor: `${tone}18` }]}>
-          <Text style={[styles.typeLabel, { color: tone }]}>{formatTypeLabel(post.type)}</Text>
+      <Pressable onPress={() => onPress?.(post)} style={styles.pressableContent}>
+        <View style={styles.topRow}>
+          <View style={[styles.typePill, { backgroundColor: `${tone}18` }]}>
+            <Text style={[styles.typeLabel, { color: tone }]}>{formatTypeLabel(post.type)}</Text>
+          </View>
+          <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
         </View>
-        <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
-      </View>
 
-      <Text style={styles.content}>{post.content}</Text>
+        <Text style={styles.content}>{post.content}</Text>
 
-      {post.media.length > 0 ? (
-        <View style={styles.mediaBadge}>
-          <Ionicons name="attach-outline" size={14} color={theme.colors.muted} />
-          <Text style={styles.mediaBadgeText}>
-            {post.media.length} attachment{post.media.length > 1 ? 's' : ''}
-          </Text>
-        </View>
-      ) : null}
+        {imageMedia.length > 0 ? (
+          <Image
+            source={{ uri: resolveMediaUrl(imageMedia[0].url) }}
+            style={styles.imagePreview}
+            resizeMode="cover"
+          />
+        ) : null}
 
-      <View style={styles.authorRow}>
-        <View style={[styles.avatar, { backgroundColor: tone }]}>
-          <Text style={styles.avatarLabel}>{authorName.slice(0, 1).toUpperCase()}</Text>
+        {post.media.length > 0 ? (
+          <View style={styles.mediaBadge}>
+            <Ionicons name="attach-outline" size={14} color={theme.colors.muted} />
+            <Text style={styles.mediaBadgeText}>
+              {imageMedia.length > 0
+                ? `${imageMedia.length} image${imageMedia.length > 1 ? 's' : ''}`
+                : `${post.media.length} attachment${post.media.length > 1 ? 's' : ''}`}
+              {nonImageMediaCount > 0 ? ` • ${nonImageMediaCount} other` : ''}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={styles.authorRow}>
+          <View style={[styles.avatar, { backgroundColor: tone }]}>
+            <Text style={styles.avatarLabel}>{authorName.slice(0, 1).toUpperCase()}</Text>
+          </View>
+          <View>
+            <Text style={styles.author}>{authorName}</Text>
+            <Text style={styles.handle}>{handle}</Text>
+          </View>
         </View>
-        <View>
-          <Text style={styles.author}>{authorName}</Text>
-          <Text style={styles.handle}>{handle}</Text>
-        </View>
-      </View>
+      </Pressable>
 
       {!hideActions ? (
         <View style={styles.actionRow}>
@@ -154,6 +172,9 @@ function createStyles(theme: AppTheme) {
       bottom: 0,
       borderRadius: 28,
     },
+    pressableContent: {
+      gap: 18,
+    },
     topRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -199,6 +220,12 @@ function createStyles(theme: AppTheme) {
       fontFamily: theme.fonts.sansMedium,
       fontSize: 12,
       color: theme.colors.muted,
+    },
+    imagePreview: {
+      width: '100%',
+      height: 220,
+      borderRadius: 20,
+      backgroundColor: theme.colors.cardMuted,
     },
     authorRow: {
       flexDirection: 'row',

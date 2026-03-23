@@ -14,6 +14,7 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import { AuthProvider, useAuth } from '../src/auth/AuthContext';
+import { PostMutationsProvider } from '../src/posts/PostMutationsContext';
 import { ThemeProvider, useTheme } from '../src/theme';
 import { ToastProvider } from '../src/toast/ToastContext';
 
@@ -42,9 +43,11 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <AuthProvider>
-          <RootNavigator />
-        </AuthProvider>
+        <PostMutationsProvider>
+          <AuthProvider>
+            <RootNavigator />
+          </AuthProvider>
+        </PostMutationsProvider>
       </ToastProvider>
     </ThemeProvider>
   );
