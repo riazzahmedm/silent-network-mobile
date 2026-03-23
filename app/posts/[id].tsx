@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
+import Markdown from 'react-native-markdown-display';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,13 +12,18 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/auth/AuthContext';
+import { MarkdownComposer } from '../../src/components/MarkdownComposer';
 import { api, ApiError, resolveMediaUrl } from '../../src/lib/api';
+import {
+  createMarkdownRules,
+  createMarkdownStyles,
+  POST_CONTENT_MAX_LENGTH,
+} from '../../src/posts/markdown';
 import { usePostMutations } from '../../src/posts/PostMutationsContext';
 import type { FeedPost, PostType, UploadableMediaType } from '../../src/types/feed';
 import { AppTheme, useTheme } from '../../src/theme';
@@ -38,6 +44,8 @@ export default function PostDetailScreen() {
   const { showToast } = useToast();
   const { theme } = useTheme();
   const styles = createStyles(theme);
+  const markdownStyles = useMemo(() => createMarkdownStyles(theme), [theme]);
+  const markdownRules = useMemo(() => createMarkdownRules(), []);
   const [post, setPost] = useState<FeedPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -372,7 +380,9 @@ export default function PostDetailScreen() {
               <Text style={styles.time}>{formatFullTimestamp(post.createdAt)}</Text>
             </View>
 
-            <Text style={styles.contentText}>{post.content}</Text>
+            <Markdown style={markdownStyles} rules={markdownRules}>
+              {post.content}
+            </Markdown>
 
             {post.media.map((media) =>
               media.type === 'IMAGE' ? (
@@ -445,20 +455,15 @@ export default function PostDetailScreen() {
               })}
             </View>
 
-            <TextInput
+            <MarkdownComposer
               value={editContent}
-              onChangeText={(value) => {
-                setEditContent(value);
-                if (editError) {
-                  setEditError(null);
-                }
-              }}
+              onChangeText={setEditContent}
               placeholder="Update your post"
-              placeholderTextColor={theme.mode === 'dark' ? '#8E8A84' : '#8C968E'}
-              multiline
-              textAlignVertical="top"
-              maxLength={2000}
-              style={styles.editInput}
+              maxLength={POST_CONTENT_MAX_LENGTH}
+              minHeight={220}
+              editable={!isSaving}
+              error={editError}
+              onErrorClear={() => setEditError(null)}
             />
 
             <View style={styles.attachmentActions}>
@@ -590,7 +595,6 @@ export default function PostDetailScreen() {
             ) : null}
 
             <View style={styles.modalFooter}>
-              <Text style={styles.countLabel}>{editContent.trim().length}/2000</Text>
               <TouchableOpacity
                 style={[styles.saveButton, (!editContent.trim() || isSaving) && styles.saveButtonDisabled]}
                 disabled={!editContent.trim() || isSaving}
@@ -603,8 +607,6 @@ export default function PostDetailScreen() {
                 )}
               </TouchableOpacity>
             </View>
-
-            {editError ? <Text style={styles.editError}>{editError}</Text> : null}
           </View>
         </View>
       </Modal>
@@ -769,12 +771,6 @@ function createStyles(theme: AppTheme) {
       fontSize: 12,
       color: theme.colors.muted,
     },
-    contentText: {
-      fontFamily: theme.fonts.sansRegular,
-      fontSize: 16,
-      lineHeight: 28,
-      color: theme.colors.ink,
-    },
     image: {
       width: '100%',
       height: 260,
@@ -881,19 +877,6 @@ function createStyles(theme: AppTheme) {
     },
     typeChipLabelActive: {
       color: theme.colors.card,
-    },
-    editInput: {
-      minHeight: 180,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      backgroundColor: theme.colors.cardMuted,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      fontFamily: theme.fonts.sansRegular,
-      fontSize: 15,
-      lineHeight: 24,
-      color: theme.colors.ink,
     },
     attachmentActions: {
       flexDirection: 'row',
@@ -1010,14 +993,9 @@ function createStyles(theme: AppTheme) {
     },
     modalFooter: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-end',
       alignItems: 'center',
       gap: 16,
-    },
-    countLabel: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 12,
-      color: theme.colors.muted,
     },
     saveButton: {
       minHeight: 48,
@@ -1034,12 +1012,6 @@ function createStyles(theme: AppTheme) {
       fontFamily: theme.fonts.sansBold,
       fontSize: 14,
       color: theme.colors.card,
-    },
-    editError: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 13,
-      lineHeight: 20,
-      color: '#A84E3B',
     },
     progressCard: {
       borderRadius: 18,

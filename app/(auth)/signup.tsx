@@ -69,8 +69,8 @@ export default function SignupScreen() {
   return (
     <AuthShell
       eyebrow="Create Account"
-      title="Start a quieter kind of social profile."
-      subtitle="No followers. No likes. Just a place to document real progress and talk privately with people who can help."
+      title="Start a quieter developer profile."
+      subtitle="No followers. No likes. Just a place to document what you ship, learn, and debug, then talk privately with developers who can help."
     >
       <AuthField
         label="Name"
@@ -95,7 +95,7 @@ export default function SignupScreen() {
             setLocalError(null);
           }
         }}
-        placeholder="riaz_builder"
+        placeholder="riazdev"
         autoComplete="username"
         textContentType="username"
       />

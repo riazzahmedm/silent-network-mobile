@@ -33,7 +33,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Silent Network to access your library so you can attach progress screenshots and videos."
+          "photosPermission": "Allow Silent Network to access your library so you can attach code screenshots, recordings, and files."
         }
       ],
       "expo-document-picker"

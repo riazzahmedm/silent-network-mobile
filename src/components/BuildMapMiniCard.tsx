@@ -19,7 +19,7 @@ export function BuildMapMiniCard({ rows }: BuildMapMiniCardProps) {
   return (
     <View style={styles.card}>
       <Text style={styles.eyebrow}>Your Journey</Text>
-      <Text style={styles.title}>A visual diary of recent signal days</Text>
+      <Text style={styles.title}>A visual diary of recent coding days</Text>
 
       <View style={styles.grid}>
         {rows.map((row, rowIndex) => (

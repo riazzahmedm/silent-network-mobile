@@ -148,11 +148,28 @@ export default function ConversationScreen() {
                       isMine ? styles.myMessageBubble : styles.theirMessageBubble,
                     ]}
                   >
-                    <Text style={styles.messageSender}>
+                    <Text
+                      style={[
+                        styles.messageSender,
+                        isMine ? styles.myMessageSender : styles.theirMessageSender,
+                      ]}
+                    >
                       {message.sender.name || message.sender.username}
                     </Text>
-                    <Text style={styles.messageContent}>{message.content}</Text>
-                    <Text style={styles.messageTime}>
+                    <Text
+                      style={[
+                        styles.messageContent,
+                        isMine ? styles.myMessageContent : styles.theirMessageContent,
+                      ]}
+                    >
+                      {message.content}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.messageTime,
+                        isMine ? styles.myMessageTime : styles.theirMessageTime,
+                      ]}
+                    >
                       {formatTimestamp(message.createdAt)}
                     </Text>
                   </View>
@@ -285,17 +302,32 @@ function createStyles(theme: AppTheme) {
     messageSender: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 12,
+    },
+    myMessageSender: {
+      color: theme.colors.heroSubtleText,
+    },
+    theirMessageSender: {
       color: theme.colors.muted,
     },
     messageContent: {
       fontFamily: theme.fonts.sansRegular,
       fontSize: 14,
       lineHeight: 22,
+    },
+    myMessageContent: {
+      color: theme.colors.heroText,
+    },
+    theirMessageContent: {
       color: theme.colors.ink,
     },
     messageTime: {
       fontFamily: theme.fonts.sansRegular,
       fontSize: 11,
+    },
+    myMessageTime: {
+      color: theme.colors.heroSubtleText,
+    },
+    theirMessageTime: {
       color: theme.colors.muted,
     },
     composer: {

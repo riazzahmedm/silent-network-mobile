@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { resolveMediaUrl } from '../lib/api';
+import { toPlainTextPreview } from '../posts/markdown';
 import type { FeedPost, PostType } from '../types/feed';
 import type { InteractionType } from '../types/messaging';
 import { AppTheme, useTheme } from '../theme';
@@ -33,16 +34,16 @@ export function FeedPostCard({
   const handle = `@${post.user.username}`;
   const actionMap: Record<PostType, Array<{ label: string; type: InteractionType }>> = {
     BUILDING: [
-      { label: 'I can help', type: 'I_CAN_HELP' },
-      { label: 'Built something similar', type: 'BUILT_SIMILAR' },
+      { label: 'I can help debug this', type: 'I_CAN_HELP' },
+      { label: 'I shipped something similar', type: 'BUILT_SIMILAR' },
     ],
     LEARNING: [
-      { label: 'Learned this too', type: 'LEARNED_THIS' },
-      { label: 'I can help', type: 'I_CAN_HELP' },
+      { label: 'I learned this too', type: 'LEARNED_THIS' },
+      { label: 'I can help debug this', type: 'I_CAN_HELP' },
     ],
     STRUGGLING: [
-      { label: 'I can help', type: 'I_CAN_HELP' },
-      { label: 'Built something similar', type: 'BUILT_SIMILAR' },
+      { label: 'I can help debug this', type: 'I_CAN_HELP' },
+      { label: 'I fixed something similar', type: 'BUILT_SIMILAR' },
     ],
   };
   const actions = actionMap[post.type];
@@ -65,7 +66,7 @@ export function FeedPostCard({
           <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
         </View>
 
-        <Text style={styles.content}>{post.content}</Text>
+        <Text style={styles.content}>{toPlainTextPreview(post.content)}</Text>
 
         {imageMedia.length > 0 ? (
           <Image

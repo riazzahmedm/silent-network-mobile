@@ -101,9 +101,9 @@ export default function InboxScreen() {
           style={styles.hero}
         >
           <Text style={styles.eyebrow}>Inbox</Text>
-          <Text style={styles.title}>Quiet conversations, started by useful intent.</Text>
+          <Text style={styles.title}>Quiet developer conversations, started by useful intent.</Text>
           <Text style={styles.copy}>
-            Interactions like “I can help” open direct threads. No public comment theater.
+            Interactions like “I can help debug this” open direct threads. No public comment theater.
           </Text>
         </LinearGradient>
 
@@ -127,7 +127,7 @@ export default function InboxScreen() {
           <View style={styles.stateCard}>
             <Text style={styles.stateTitle}>No conversations yet</Text>
             <Text style={styles.stateText}>
-              Private replies from the feed will appear here.
+              Private replies from developer posts will appear here.
             </Text>
           </View>
         ) : (
@@ -149,22 +149,22 @@ export default function InboxScreen() {
 function inferConversationTitle(content: string) {
   const value = content.toLowerCase();
   if (value.includes('learned this too')) {
-    return 'Learned This Too';
+    return 'I Learned This Too';
   }
-  if (value.includes('built something similar')) {
-    return 'Built Something Similar';
+  if (value.includes('shipped something similar') || value.includes('built something similar')) {
+    return 'I Shipped Something Similar';
   }
-  if (value.includes('help')) {
-    return 'I Can Help';
+  if (value.includes('help debug') || value.includes('help')) {
+    return 'I Can Help Debug This';
   }
   return 'Direct Message';
 }
 
 function inferAccent(title: string): 'building' | 'learning' | 'struggling' {
-  if (title === 'Learned This Too') {
+  if (title === 'I Learned This Too') {
     return 'learning';
   }
-  if (title === 'Built Something Similar') {
+  if (title === 'I Shipped Something Similar') {
     return 'building';
   }
   return 'struggling';

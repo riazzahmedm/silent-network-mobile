@@ -103,21 +103,21 @@ export default function SignalsScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          <Text style={styles.eyebrow}>Signals</Text>
-          <Text style={styles.title}>Progress you can feel, not perform.</Text>
+          <Text style={styles.eyebrow}>Developer Signals</Text>
+          <Text style={styles.title}>Developer progress you can feel, not perform.</Text>
           <Text style={styles.copy}>
-            Quiet indicators of consistency, learning, and honesty. No vanity metrics.
+            Quiet indicators of shipping, learning, and debugging. No vanity metrics.
           </Text>
         </LinearGradient>
 
         {isLoading ? (
           <View style={styles.stateCard}>
             <ActivityIndicator size="small" color={theme.colors.ink} />
-            <Text style={styles.stateText}>Loading signals…</Text>
+            <Text style={styles.stateText}>Loading developer signals…</Text>
           </View>
         ) : error ? (
           <View style={styles.stateCard}>
-            <Text style={styles.stateTitle}>Signals unavailable</Text>
+            <Text style={styles.stateTitle}>Developer signals unavailable</Text>
             <Text style={styles.stateText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryButton}
@@ -136,8 +136,8 @@ export default function SignalsScreen() {
 
             <SectionHeading
               eyebrow="Journey"
-              title="Your build map"
-              detail="Multiple signals on one day become layered color tiles instead of a single flattened status."
+              title="Your developer map"
+              detail="Multiple updates on one day become layered color tiles instead of a single flattened status."
             />
 
             <BuildMapCard rows={buildMapRows} />

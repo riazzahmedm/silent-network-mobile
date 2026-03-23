@@ -12,7 +12,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -20,8 +19,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/auth/AuthContext';
 import { FeedComposerCard } from '../../src/components/FeedComposerCard';
 import { FeedPostCard } from '../../src/components/FeedPostCard';
+import { MarkdownComposer } from '../../src/components/MarkdownComposer';
 import { SectionHeading } from '../../src/components/SectionHeading';
 import { api, ApiError } from '../../src/lib/api';
+import { POST_CONTENT_MAX_LENGTH } from '../../src/posts/markdown';
 import { usePostMutations } from '../../src/posts/PostMutationsContext';
 import type { FeedPost, PostType, UploadableMediaType } from '../../src/types/feed';
 import type { InteractionType } from '../../src/types/messaging';
@@ -61,10 +62,10 @@ export default function FeedScreen() {
 
   const filters = useMemo(
     () => [
-      { label: 'All Signals', value: undefined },
+      { label: 'All Dev Logs', value: undefined },
       { label: 'Building', value: 'BUILDING' as PostType },
       { label: 'Learning', value: 'LEARNING' as PostType },
-      { label: 'Struggling', value: 'STRUGGLING' as PostType },
+      { label: 'Debugging', value: 'STRUGGLING' as PostType },
     ],
     [],
   );
@@ -213,7 +214,7 @@ export default function FeedScreen() {
       setComposerError('You must be logged in to post.');
       showToast({
         title: 'Login required',
-        message: 'Sign in to publish a signal.',
+        message: 'Sign in to publish a dev log.',
         type: 'error',
       });
       return;
@@ -221,7 +222,7 @@ export default function FeedScreen() {
 
     const trimmedContent = composerContent.trim();
     if (!trimmedContent) {
-      setComposerError('Write a short progress update.');
+      setComposerError('Write a developer update.');
       return;
     }
 
@@ -342,8 +343,8 @@ export default function FeedScreen() {
           <View style={styles.heroAuraTwo} />
           <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.eyebrow}>Signal Over Noise</Text>
-              <Text style={styles.heroTitle}>A calm feed for the real work.</Text>
+              <Text style={styles.eyebrow}>For Developers</Text>
+              <Text style={styles.heroTitle}>A calm feed for real developer work.</Text>
             </View>
             <TouchableOpacity style={styles.composeButton} onPress={() => openComposer()}>
               <Ionicons name="add" color={theme.colors.card} size={24} />
@@ -351,8 +352,8 @@ export default function FeedScreen() {
           </View>
 
           <Text style={styles.heroCopy}>
-            No likes. No follower counts. Just builders sharing what they are building,
-            learning, and struggling with.
+            No likes. No follower counts. Just developers sharing what they are building,
+            learning, and debugging.
           </Text>
 
           <ScrollView
@@ -386,8 +387,8 @@ export default function FeedScreen() {
 
         <SectionHeading
           eyebrow="Today"
-          title="Builders sharing the actual work"
-          detail="Private responses turn posts into conversations, not performances."
+          title="Developers sharing the actual work"
+          detail="Private responses turn code, bugs, and learnings into conversations, not performances."
         />
 
         {interactionError ? (
@@ -416,7 +417,7 @@ export default function FeedScreen() {
           <View style={styles.stateCard}>
             <Text style={styles.stateTitle}>Nothing here yet</Text>
             <Text style={styles.stateText}>
-              Switch the filter or publish the first signal.
+              Switch the filter or publish the first dev log.
             </Text>
           </View>
         ) : (
@@ -458,7 +459,7 @@ export default function FeedScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Share a signal</Text>
+              <Text style={styles.modalTitle}>Share a dev log</Text>
               <Pressable onPress={() => setIsComposerOpen(false)}>
                 <Ionicons name="close" size={22} color={theme.colors.ink} />
               </Pressable>
@@ -487,20 +488,14 @@ export default function FeedScreen() {
               })}
             </View>
 
-            <TextInput
+            <MarkdownComposer
               value={composerContent}
-              onChangeText={(value) => {
-                setComposerContent(value);
-                if (composerError) {
-                  setComposerError(null);
-                }
-              }}
-              placeholder="What are you building, learning, or struggling with today?"
-              placeholderTextColor={theme.mode === 'dark' ? '#8E8A84' : '#8C968E'}
-              multiline
-              textAlignVertical="top"
-              maxLength={2000}
-              style={styles.modalInput}
+              onChangeText={setComposerContent}
+              placeholder="What are you shipping, learning, or debugging today?"
+              maxLength={POST_CONTENT_MAX_LENGTH}
+              minHeight={190}
+              error={composerError}
+              onErrorClear={() => setComposerError(null)}
             />
 
             <View style={styles.attachmentActions}>
@@ -510,7 +505,7 @@ export default function FeedScreen() {
                 disabled={isSubmitting}
               >
                 <Ionicons name="images-outline" size={16} color={theme.colors.ink} />
-                <Text style={styles.attachmentPickerLabel}>Photo or Video</Text>
+                <Text style={styles.attachmentPickerLabel}>Screenshot or Video</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.attachmentPickerButton}
@@ -541,7 +536,6 @@ export default function FeedScreen() {
             ) : null}
 
             <View style={styles.modalFooter}>
-              <Text style={styles.characterCount}>{composerContent.trim().length}/2000</Text>
               <TouchableOpacity
                 style={[
                   styles.publishButton,
@@ -557,8 +551,6 @@ export default function FeedScreen() {
                 )}
               </TouchableOpacity>
             </View>
-
-            {composerError ? <Text style={styles.composerError}>{composerError}</Text> : null}
           </View>
         </View>
       </Modal>
@@ -789,19 +781,6 @@ function createStyles(theme: AppTheme) {
     modalTypeLabelActive: {
       color: theme.colors.card,
     },
-    modalInput: {
-      minHeight: 160,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      backgroundColor: theme.colors.cardMuted,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      fontFamily: theme.fonts.sansRegular,
-      fontSize: 15,
-      lineHeight: 24,
-      color: theme.colors.ink,
-    },
     attachmentActions: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -854,14 +833,9 @@ function createStyles(theme: AppTheme) {
     },
     modalFooter: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-end',
       alignItems: 'center',
       gap: 16,
-    },
-    characterCount: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 12,
-      color: theme.colors.muted,
     },
     publishButton: {
       minHeight: 48,
@@ -878,12 +852,6 @@ function createStyles(theme: AppTheme) {
       fontFamily: theme.fonts.sansBold,
       fontSize: 14,
       color: theme.colors.card,
-    },
-    composerError: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 13,
-      lineHeight: 20,
-      color: '#A84E3B',
     },
   });
 }
