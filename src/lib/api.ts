@@ -30,7 +30,7 @@ const API_BASE_URL =
   (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://127.0.0.1:3000');
 
 type RequestOptions = {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   token?: string | null;
   body?: unknown;
 };
@@ -138,6 +138,26 @@ export const api = {
       body: payload,
     });
   },
+  getPost(postId: string) {
+    return request<FeedPost>(`/posts/${postId}`);
+  },
+  updatePost(
+    postId: string,
+    payload: Partial<CreatePostPayload>,
+    token: string,
+  ) {
+    return request<FeedPost>(`/posts/${postId}`, {
+      method: 'PATCH',
+      token,
+      body: payload,
+    });
+  },
+  deletePost(postId: string, token: string) {
+    return request<{ id: string }>(`/posts/${postId}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
   async uploadMedia(
     payload: {
       postId: string;
@@ -192,6 +212,12 @@ export const api = {
 
     return (await response.json()) as PostMedia;
   },
+  deleteMedia(mediaId: string, token: string) {
+    return request<PostMedia>(`/media/${mediaId}`, {
+      method: 'DELETE',
+      token,
+    });
+  },
   getMySignals(token: string) {
     return request<SignalsResponse>('/streaks/me', {
       token,
@@ -236,3 +262,24 @@ export const api = {
 };
 
 export { ApiError };
+
+export function resolveMediaUrl(url: string) {
+  try {
+    const mediaUrl = new URL(url);
+    const apiUrl = new URL(API_BASE_URL);
+
+    if (
+      ['localhost', '127.0.0.1'].includes(mediaUrl.hostname) &&
+      !['localhost', '127.0.0.1'].includes(apiUrl.hostname)
+    ) {
+      mediaUrl.protocol = apiUrl.protocol;
+      mediaUrl.hostname = apiUrl.hostname;
+      mediaUrl.port = apiUrl.port;
+      return mediaUrl.toString();
+    }
+
+    return mediaUrl.toString();
+  } catch {
+    return url;
+  }
+}
