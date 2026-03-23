@@ -2,13 +2,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { FeedPost, PostType } from '../types/feed';
+import type { InteractionType } from '../types/messaging';
 import { AppTheme, useTheme } from '../theme';
 
 type FeedPostCardProps = {
   post: FeedPost;
+  onActionPress?: (post: FeedPost, type: InteractionType) => void;
+  disabled?: boolean;
+  hideActions?: boolean;
 };
 
-export function FeedPostCard({ post }: FeedPostCardProps) {
+export function FeedPostCard({
+  post,
+  onActionPress,
+  disabled,
+  hideActions,
+}: FeedPostCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const toneMap: Record<PostType, string> = {
@@ -19,10 +28,19 @@ export function FeedPostCard({ post }: FeedPostCardProps) {
   const tone = toneMap[post.type];
   const authorName = post.user.name || post.user.username;
   const handle = `@${post.user.username}`;
-  const actionMap: Record<PostType, string[]> = {
-    BUILDING: ['I can help', 'Built something similar'],
-    LEARNING: ['Learned this too', 'I can help'],
-    STRUGGLING: ['I can help', 'Built something similar'],
+  const actionMap: Record<PostType, Array<{ label: string; type: InteractionType }>> = {
+    BUILDING: [
+      { label: 'I can help', type: 'I_CAN_HELP' },
+      { label: 'Built something similar', type: 'BUILT_SIMILAR' },
+    ],
+    LEARNING: [
+      { label: 'Learned this too', type: 'LEARNED_THIS' },
+      { label: 'I can help', type: 'I_CAN_HELP' },
+    ],
+    STRUGGLING: [
+      { label: 'I can help', type: 'I_CAN_HELP' },
+      { label: 'Built something similar', type: 'BUILT_SIMILAR' },
+    ],
   };
   const actions = actionMap[post.type];
 
@@ -62,14 +80,21 @@ export function FeedPostCard({ post }: FeedPostCardProps) {
         </View>
       </View>
 
-      <View style={styles.actionRow}>
-        {actions.map((action) => (
-          <TouchableOpacity key={action} style={styles.actionButton}>
-            <Ionicons name="arrow-up-circle-outline" size={16} color={tone} />
-            <Text style={styles.actionText}>{action}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {!hideActions ? (
+        <View style={styles.actionRow}>
+          {actions.map((action) => (
+            <TouchableOpacity
+              key={action.label}
+              style={[styles.actionButton, disabled && styles.actionButtonDisabled]}
+              disabled={disabled}
+              onPress={() => onActionPress?.(post, action.type)}
+            >
+              <Ionicons name="arrow-up-circle-outline" size={16} color={tone} />
+              <Text style={styles.actionText}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -217,6 +242,9 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.cardMuted,
       borderWidth: 1,
       borderColor: theme.colors.line,
+    },
+    actionButtonDisabled: {
+      opacity: 0.6,
     },
     actionText: {
       fontFamily: theme.fonts.sansMedium,

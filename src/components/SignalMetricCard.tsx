@@ -1,12 +1,15 @@
 import { StyleSheet, Text, View } from 'react-native';
+import type { SignalMetric as SignalMetricData } from '../types/signals';
 import { AppTheme, useTheme } from '../theme';
+
+type SignalMetricTone = 'building' | 'learning' | 'struggling';
 
 type SignalMetric = {
   title: string;
-  value: string;
+  value: number | string;
   subtitle: string;
-  tone: 'building' | 'learning' | 'struggling';
-  milestone: string;
+  tone: SignalMetricTone;
+  milestone?: string | null;
 };
 
 type SignalMetricCardProps = {
@@ -29,7 +32,7 @@ export function SignalMetricCard({ signal }: SignalMetricCardProps) {
         <View style={[styles.iconBadge, { backgroundColor: `${tone}16` }]}>
           <View style={[styles.iconDot, { backgroundColor: tone }]} />
         </View>
-        <Text style={styles.milestone}>{signal.milestone}</Text>
+        <Text style={styles.milestone}>{signal.milestone || 'In Progress'}</Text>
       </View>
       <Text style={styles.title}>{signal.title}</Text>
       <Text style={styles.value}>
@@ -91,4 +94,17 @@ function createStyles(theme: AppTheme) {
       letterSpacing: 1.6,
     },
   });
+}
+
+export function toSignalCardMetric(
+  signal: SignalMetricData,
+  tone: SignalMetricTone,
+): SignalMetric {
+  return {
+    title: signal.label,
+    value: signal.value,
+    subtitle: signal.unit,
+    tone,
+    milestone: signal.title,
+  };
 }

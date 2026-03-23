@@ -8,8 +8,22 @@ import type {
 import type {
   CreatePostPayload,
   FeedResponse,
+  FeedPost,
+  PostMedia,
   QueryFeedParams,
+  UploadableMediaType,
 } from '../types/feed';
+import type {
+  BuildMapResponse,
+  SignalsResponse,
+} from '../types/signals';
+import type {
+  ConversationListItem,
+  ConversationThread,
+  InteractionThreadResponse,
+  InteractionType,
+  Message,
+} from '../types/messaging';
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ||
@@ -118,7 +132,102 @@ export const api = {
     return request<FeedResponse>(`/feed${query ? `?${query}` : ''}`);
   },
   createPost(payload: CreatePostPayload, token: string) {
-    return request('/posts', {
+    return request<FeedPost>('/posts', {
+      method: 'POST',
+      token,
+      body: payload,
+    });
+  },
+  async uploadMedia(
+    payload: {
+      postId: string;
+      type: UploadableMediaType;
+      file: {
+        uri: string;
+        name: string;
+        mimeType: string;
+      };
+    },
+    token: string,
+  ) {
+    const formData = new FormData();
+    formData.append('postId', payload.postId);
+    formData.append('type', payload.type);
+    formData.append('file', {
+      uri: payload.file.uri,
+      name: payload.file.name,
+      type: payload.file.mimeType,
+    } as any);
+
+    let response: Response;
+
+    try {
+      response = await fetch(`${API_BASE_URL}/media/upload`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+    } catch {
+      throw new ApiError(`Cannot reach the API at ${API_BASE_URL}.`, 0);
+    }
+
+    if (!response.ok) {
+      let message = 'Failed to upload media';
+
+      try {
+        const body = await response.json();
+        if (typeof body.message === 'string') {
+          message = body.message;
+        } else if (Array.isArray(body.message) && body.message[0]) {
+          message = body.message[0];
+        }
+      } catch {
+        message = response.statusText || message;
+      }
+
+      throw new ApiError(message, response.status);
+    }
+
+    return (await response.json()) as PostMedia;
+  },
+  getMySignals(token: string) {
+    return request<SignalsResponse>('/streaks/me', {
+      token,
+    });
+  },
+  getMyBuildMap(token: string, days = 28) {
+    return request<BuildMapResponse>(`/build-map/me?days=${days}`, {
+      token,
+    });
+  },
+  getConversations(token: string) {
+    return request<ConversationListItem[]>('/messaging/conversations', {
+      token,
+    });
+  },
+  getConversation(conversationId: string, token: string) {
+    return request<ConversationThread>(`/messaging/conversations/${conversationId}`, {
+      token,
+    });
+  },
+  sendMessage(conversationId: string, content: string, token: string) {
+    return request<Message>(`/messaging/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      token,
+      body: { content },
+    });
+  },
+  createInteraction(
+    payload: {
+      postId: string;
+      type: InteractionType;
+      message?: string;
+    },
+    token: string,
+  ) {
+    return request<InteractionThreadResponse>('/interactions', {
       method: 'POST',
       token,
       body: payload,

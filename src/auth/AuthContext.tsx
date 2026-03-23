@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 import { api, ApiError } from '../lib/api';
+import { useToast } from '../toast/ToastContext';
 import type {
   AuthResponse,
   AuthUser,
@@ -57,6 +58,7 @@ function extractAuthResponseFromUrl(url: string) {
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const { showToast } = useToast();
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,15 +116,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const auth = await api.login(payload);
         await persistAuth(auth);
       } catch (err) {
-        setError(
-          err instanceof ApiError ? err.message : 'Login failed. Try again.',
-        );
+        const message =
+          err instanceof ApiError ? err.message : 'Login failed. Try again.';
+        setError(message);
+        showToast({
+          title: 'Login failed',
+          message,
+          type: 'error',
+        });
         throw err;
       } finally {
         setIsLoading(false);
       }
     },
-    [persistAuth],
+    [persistAuth, showToast],
   );
 
   const signup = useCallback(
@@ -132,15 +139,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
         const auth = await api.signup(payload);
         await persistAuth(auth);
       } catch (err) {
-        setError(
-          err instanceof ApiError ? err.message : 'Signup failed. Try again.',
-        );
+        const message =
+          err instanceof ApiError ? err.message : 'Signup failed. Try again.';
+        setError(message);
+        showToast({
+          title: 'Signup failed',
+          message,
+          type: 'error',
+        });
         throw err;
       } finally {
         setIsLoading(false);
       }
     },
-    [persistAuth],
+    [persistAuth, showToast],
   );
 
   const loginWithOAuth = useCallback(
@@ -154,6 +166,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (result.type !== 'success' || !result.url) {
           if (result.type !== 'cancel') {
             setError('OAuth login did not complete.');
+            showToast({
+              title: 'OAuth incomplete',
+              message: 'The authentication flow did not finish.',
+              type: 'error',
+            });
           }
           return;
         }
@@ -166,15 +183,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUser(session.user);
         setError(null);
       } catch (err) {
-        setError(
-          err instanceof ApiError ? err.message : 'OAuth login failed. Try again.',
-        );
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : 'OAuth login failed. Try again.';
+        setError(message);
+        showToast({
+          title: 'OAuth failed',
+          message,
+          type: 'error',
+        });
         throw err;
       } finally {
         setIsLoading(false);
       }
     },
-    [],
+    [showToast],
   );
 
   const logout = useCallback(async () => {
@@ -182,7 +206,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setAccessToken(null);
     setUser(null);
     setError(null);
-  }, []);
+    showToast({
+      title: 'Logged out',
+      message: 'Your session has been cleared on this device.',
+      type: 'info',
+    });
+  }, [showToast]);
 
   const clearError = useCallback(() => {
     setError(null);
