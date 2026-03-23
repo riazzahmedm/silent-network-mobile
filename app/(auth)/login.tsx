@@ -13,14 +13,36 @@ export default function LoginScreen() {
   const styles = createStyles(theme);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
 
   async function handleLogin() {
     clearError();
-    await login({
-      email: email.trim(),
-      password,
-    });
-    router.replace('/(tabs)');
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedEmail) {
+      setLocalError('Email is required.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setLocalError('Enter a valid email address.');
+      return;
+    }
+
+    if (!password) {
+      setLocalError('Password is required.');
+      return;
+    }
+
+    setLocalError(null);
+
+    try {
+      await login({
+        email: trimmedEmail,
+        password,
+      });
+      router.replace('/(tabs)');
+    } catch {}
   }
 
   return (
@@ -32,18 +54,33 @@ export default function LoginScreen() {
       <AuthField
         label="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(value) => {
+          setEmail(value);
+          if (localError) {
+            setLocalError(null);
+          }
+        }}
         placeholder="riaz@example.com"
         keyboardType="email-address"
+        autoComplete="email"
+        textContentType="emailAddress"
       />
       <AuthField
         label="Password"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(value) => {
+          setPassword(value);
+          if (localError) {
+            setLocalError(null);
+          }
+        }}
         placeholder="Your password"
         secureTextEntry
+        autoComplete="password"
+        textContentType="password"
       />
 
+      {localError ? <Text style={styles.error}>{localError}</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <AuthButton
@@ -64,20 +101,20 @@ export default function LoginScreen() {
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
-  error: {
-    fontFamily: theme.fonts.sansMedium,
-    color: '#A84E3B',
-    fontSize: 13,
-    lineHeight: 20,
-  },
-  links: {
-    paddingTop: 4,
-  },
-  link: {
-    textAlign: 'center',
-    fontFamily: theme.fonts.sansMedium,
-    color: theme.colors.accentBlue,
-    fontSize: 14,
-  },
+    error: {
+      fontFamily: theme.fonts.sansMedium,
+      color: '#A84E3B',
+      fontSize: 13,
+      lineHeight: 20,
+    },
+    links: {
+      paddingTop: 4,
+    },
+    link: {
+      textAlign: 'center',
+      fontFamily: theme.fonts.sansMedium,
+      color: theme.colors.accentBlue,
+      fontSize: 14,
+    },
   });
 }
