@@ -48,8 +48,8 @@ export default function LoginScreen() {
   return (
     <AuthShell
       eyebrow="Log In"
-      title="Return to the work."
-      subtitle="Pick up where you left off. Your signals and conversations stay quiet and intact."
+      title="Return to the code."
+      subtitle="Pick up where you left off. Your developer signals and conversations stay quiet and intact."
     >
       <AuthField
         label="Email"

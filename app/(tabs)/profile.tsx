@@ -72,8 +72,8 @@ export default function ProfileScreen() {
     [buildMap],
   );
 
-  const profileName = signals?.user.name || user?.name || signals?.user.username || user?.username || 'Silent User';
-  const profileHandle = signals?.user.username || user?.username || 'silent';
+  const profileName = signals?.user.name || user?.name || signals?.user.username || user?.username || 'Developer';
+  const profileHandle = signals?.user.username || user?.username || 'dev';
   const heroInitials = profileName.slice(0, 2).toUpperCase();
   const highlights = useMemo(() => {
     const topTopic =
@@ -121,7 +121,7 @@ export default function ProfileScreen() {
         >
           <View style={styles.heroHeaderRow}>
             <View style={styles.heroChip}>
-              <Text style={styles.heroChipLabel}>Private Profile</Text>
+              <Text style={styles.heroChipLabel}>Developer Profile</Text>
             </View>
             <Pressable style={styles.themeToggle} onPress={toggleTheme}>
               <Text style={styles.themeToggleLabel}>{isDark ? 'Light' : 'Dark'}</Text>
@@ -134,7 +134,7 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{profileName}</Text>
           <Text style={styles.role}>@{profileHandle}</Text>
           <Text style={styles.bio}>
-            {user?.email || 'Building calm software for people who want signal, not status.'}
+            {user?.email || 'Shipping calm software for developers who want signal, not status.'}
           </Text>
         </LinearGradient>
 

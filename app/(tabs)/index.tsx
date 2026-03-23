@@ -62,10 +62,10 @@ export default function FeedScreen() {
 
   const filters = useMemo(
     () => [
-      { label: 'All Signals', value: undefined },
+      { label: 'All Dev Logs', value: undefined },
       { label: 'Building', value: 'BUILDING' as PostType },
       { label: 'Learning', value: 'LEARNING' as PostType },
-      { label: 'Struggling', value: 'STRUGGLING' as PostType },
+      { label: 'Debugging', value: 'STRUGGLING' as PostType },
     ],
     [],
   );
@@ -214,7 +214,7 @@ export default function FeedScreen() {
       setComposerError('You must be logged in to post.');
       showToast({
         title: 'Login required',
-        message: 'Sign in to publish a signal.',
+        message: 'Sign in to publish a dev log.',
         type: 'error',
       });
       return;
@@ -222,7 +222,7 @@ export default function FeedScreen() {
 
     const trimmedContent = composerContent.trim();
     if (!trimmedContent) {
-      setComposerError('Write a short progress update.');
+      setComposerError('Write a developer update.');
       return;
     }
 
@@ -343,8 +343,8 @@ export default function FeedScreen() {
           <View style={styles.heroAuraTwo} />
           <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.eyebrow}>Signal Over Noise</Text>
-              <Text style={styles.heroTitle}>A calm feed for the real work.</Text>
+              <Text style={styles.eyebrow}>For Developers</Text>
+              <Text style={styles.heroTitle}>A calm feed for real developer work.</Text>
             </View>
             <TouchableOpacity style={styles.composeButton} onPress={() => openComposer()}>
               <Ionicons name="add" color={theme.colors.card} size={24} />
@@ -352,8 +352,8 @@ export default function FeedScreen() {
           </View>
 
           <Text style={styles.heroCopy}>
-            No likes. No follower counts. Just builders sharing what they are building,
-            learning, and struggling with.
+            No likes. No follower counts. Just developers sharing what they are building,
+            learning, and debugging.
           </Text>
 
           <ScrollView
@@ -387,8 +387,8 @@ export default function FeedScreen() {
 
         <SectionHeading
           eyebrow="Today"
-          title="Builders sharing the actual work"
-          detail="Private responses turn posts into conversations, not performances."
+          title="Developers sharing the actual work"
+          detail="Private responses turn code, bugs, and learnings into conversations, not performances."
         />
 
         {interactionError ? (
@@ -417,7 +417,7 @@ export default function FeedScreen() {
           <View style={styles.stateCard}>
             <Text style={styles.stateTitle}>Nothing here yet</Text>
             <Text style={styles.stateText}>
-              Switch the filter or publish the first signal.
+              Switch the filter or publish the first dev log.
             </Text>
           </View>
         ) : (
@@ -459,7 +459,7 @@ export default function FeedScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Share a signal</Text>
+              <Text style={styles.modalTitle}>Share a dev log</Text>
               <Pressable onPress={() => setIsComposerOpen(false)}>
                 <Ionicons name="close" size={22} color={theme.colors.ink} />
               </Pressable>
@@ -491,7 +491,7 @@ export default function FeedScreen() {
             <MarkdownComposer
               value={composerContent}
               onChangeText={setComposerContent}
-              placeholder="What are you building, learning, or struggling with today?"
+              placeholder="What are you shipping, learning, or debugging today?"
               maxLength={POST_CONTENT_MAX_LENGTH}
               minHeight={190}
               error={composerError}
@@ -505,7 +505,7 @@ export default function FeedScreen() {
                 disabled={isSubmitting}
               >
                 <Ionicons name="images-outline" size={16} color={theme.colors.ink} />
-                <Text style={styles.attachmentPickerLabel}>Photo or Video</Text>
+                <Text style={styles.attachmentPickerLabel}>Screenshot or Video</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.attachmentPickerButton}

@@ -14,13 +14,13 @@ export default function WelcomeScreen() {
   return (
     <AuthShell
       eyebrow="The Silent Network"
-      title="A social network without vanity metrics."
-      subtitle="Signal over noise. Builders share progress, learning, and struggle without performing for an audience."
+      title="A quiet network for developers."
+      subtitle="Signal over noise. Developers share what they are building, learning, and debugging without performing for an audience."
     >
       <View style={styles.copyBlock}>
         <Text style={styles.copy}>
-          Interaction happens through private conversations like “I can help” and
-          “I built something similar”, not public comment ladders.
+          Interaction happens through private conversations like “I can help debug this”
+          and “I shipped something similar”, not public comment ladders.
         </Text>
         <Text style={styles.endpoint}>API: {api.baseUrl}</Text>
       </View>

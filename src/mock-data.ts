@@ -1,8 +1,8 @@
 export const feedFilters = [
-  { label: 'All Signals' },
+  { label: 'All Dev Logs' },
   { label: 'Building' },
   { label: 'Learning' },
-  { label: 'Struggling' },
+  { label: 'Debugging' },
 ];
 
 export const feedPosts = [
@@ -13,9 +13,9 @@ export const feedPosts = [
     handle: '@riazahmed',
     postedAt: '2h ago',
     content:
-      'Building a private-first social app where progress signals replace likes. Shipped the auth flow and feed pagination today.',
+      'Shipping a private-first network for developers. Finished auth flow and feed pagination today.',
     accent: 'building' as const,
-    actions: ['I can help', 'Built something similar'],
+    actions: ['I can help debug this', 'I shipped something similar'],
   },
   {
     id: '2',
@@ -26,7 +26,7 @@ export const feedPosts = [
     content:
       'Learning why cursor pagination makes the feed calmer than offsets once new posts start arriving between requests.',
     accent: 'learning' as const,
-    actions: ['Learned this too', 'I can help'],
+    actions: ['I learned this too', 'I can help debug this'],
   },
   {
     id: '3',
@@ -35,15 +35,15 @@ export const feedPosts = [
     handle: '@omaridris',
     postedAt: '8h ago',
     content:
-      'Struggling with a mixed-signal heatmap UI. One day can be building and learning. I do not want to flatten that into a single color.',
+      'Debugging a mixed-signal heatmap UI. One day can include shipping and learning, and I do not want to flatten that into a single color.',
     accent: 'struggling' as const,
-    actions: ['Built something similar', 'I can help'],
+    actions: ['I fixed something similar', 'I can help debug this'],
   },
 ];
 
 export const profileSignals = [
   {
-    title: 'Builder Signal',
+    title: 'Build Signal',
     value: '21',
     subtitle: 'days',
     tone: 'building' as const,
@@ -52,12 +52,12 @@ export const profileSignals = [
   {
     title: 'Learning Signal',
     value: '14',
-    subtitle: 'learnings',
+    subtitle: 'dev learnings',
     tone: 'learning' as const,
     milestone: 'Committed Learner',
   },
   {
-    title: 'Struggle Signal',
+    title: 'Debug Signal',
     value: '7',
     subtitle: 'shared',
     tone: 'struggling' as const,
@@ -75,7 +75,7 @@ export const buildMapRows = [
 export const inboxThreads = [
   {
     id: 'thread-1',
-    title: 'I can help',
+    title: 'I can help debug this',
     name: 'Maya Chen',
     snippet: 'I dealt with the same Prisma migration issue last month. Want the exact fix?',
     time: 'Now',
@@ -83,7 +83,7 @@ export const inboxThreads = [
   },
   {
     id: 'thread-2',
-    title: 'Built something similar',
+    title: 'I shipped something similar',
     name: 'Omar Idris',
     snippet: 'I used a segmented heatmap tile for mixed days. Sharing the layout idea here.',
     time: '23m',
@@ -91,7 +91,7 @@ export const inboxThreads = [
   },
   {
     id: 'thread-3',
-    title: 'Learned this too',
+    title: 'I learned this too',
     name: 'Lena Park',
     snippet: 'Cursor pagination fixed feed jitter in my app too. The tie-breaker on id matters.',
     time: '2h',

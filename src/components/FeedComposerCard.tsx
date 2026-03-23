@@ -47,9 +47,9 @@ export function FeedComposerCard({
         <Text style={styles.kicker}>Start Here</Text>
         <View style={styles.orbital} />
       </View>
-      <Text style={styles.title}>Share a signal</Text>
+      <Text style={styles.title}>Share developer work</Text>
       <Text style={styles.copy}>
-        Start with what is true today. The app handles the structure.
+        Log what you shipped, learned, or got stuck on. The app handles the structure.
       </Text>
 
       <View style={styles.row}>

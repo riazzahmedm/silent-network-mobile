@@ -34,16 +34,16 @@ export function FeedPostCard({
   const handle = `@${post.user.username}`;
   const actionMap: Record<PostType, Array<{ label: string; type: InteractionType }>> = {
     BUILDING: [
-      { label: 'I can help', type: 'I_CAN_HELP' },
-      { label: 'Built something similar', type: 'BUILT_SIMILAR' },
+      { label: 'I can help debug this', type: 'I_CAN_HELP' },
+      { label: 'I shipped something similar', type: 'BUILT_SIMILAR' },
     ],
     LEARNING: [
-      { label: 'Learned this too', type: 'LEARNED_THIS' },
-      { label: 'I can help', type: 'I_CAN_HELP' },
+      { label: 'I learned this too', type: 'LEARNED_THIS' },
+      { label: 'I can help debug this', type: 'I_CAN_HELP' },
     ],
     STRUGGLING: [
-      { label: 'I can help', type: 'I_CAN_HELP' },
-      { label: 'Built something similar', type: 'BUILT_SIMILAR' },
+      { label: 'I can help debug this', type: 'I_CAN_HELP' },
+      { label: 'I fixed something similar', type: 'BUILT_SIMILAR' },
     ],
   };
   const actions = actionMap[post.type];
