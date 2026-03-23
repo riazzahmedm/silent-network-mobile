@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { resolveMediaUrl } from '../lib/api';
+import { toPlainTextPreview } from '../posts/markdown';
 import type { FeedPost, PostType } from '../types/feed';
 import type { InteractionType } from '../types/messaging';
 import { AppTheme, useTheme } from '../theme';
@@ -65,7 +66,7 @@ export function FeedPostCard({
           <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
         </View>
 
-        <Text style={styles.content}>{post.content}</Text>
+        <Text style={styles.content}>{toPlainTextPreview(post.content)}</Text>
 
         {imageMedia.length > 0 ? (
           <Image

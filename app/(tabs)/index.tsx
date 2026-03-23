@@ -12,7 +12,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -20,8 +19,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/auth/AuthContext';
 import { FeedComposerCard } from '../../src/components/FeedComposerCard';
 import { FeedPostCard } from '../../src/components/FeedPostCard';
+import { MarkdownComposer } from '../../src/components/MarkdownComposer';
 import { SectionHeading } from '../../src/components/SectionHeading';
 import { api, ApiError } from '../../src/lib/api';
+import { POST_CONTENT_MAX_LENGTH } from '../../src/posts/markdown';
 import { usePostMutations } from '../../src/posts/PostMutationsContext';
 import type { FeedPost, PostType, UploadableMediaType } from '../../src/types/feed';
 import type { InteractionType } from '../../src/types/messaging';
@@ -487,20 +488,14 @@ export default function FeedScreen() {
               })}
             </View>
 
-            <TextInput
+            <MarkdownComposer
               value={composerContent}
-              onChangeText={(value) => {
-                setComposerContent(value);
-                if (composerError) {
-                  setComposerError(null);
-                }
-              }}
+              onChangeText={setComposerContent}
               placeholder="What are you building, learning, or struggling with today?"
-              placeholderTextColor={theme.mode === 'dark' ? '#8E8A84' : '#8C968E'}
-              multiline
-              textAlignVertical="top"
-              maxLength={2000}
-              style={styles.modalInput}
+              maxLength={POST_CONTENT_MAX_LENGTH}
+              minHeight={190}
+              error={composerError}
+              onErrorClear={() => setComposerError(null)}
             />
 
             <View style={styles.attachmentActions}>
@@ -541,7 +536,6 @@ export default function FeedScreen() {
             ) : null}
 
             <View style={styles.modalFooter}>
-              <Text style={styles.characterCount}>{composerContent.trim().length}/2000</Text>
               <TouchableOpacity
                 style={[
                   styles.publishButton,
@@ -557,8 +551,6 @@ export default function FeedScreen() {
                 )}
               </TouchableOpacity>
             </View>
-
-            {composerError ? <Text style={styles.composerError}>{composerError}</Text> : null}
           </View>
         </View>
       </Modal>
@@ -789,19 +781,6 @@ function createStyles(theme: AppTheme) {
     modalTypeLabelActive: {
       color: theme.colors.card,
     },
-    modalInput: {
-      minHeight: 160,
-      borderRadius: 20,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      backgroundColor: theme.colors.cardMuted,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      fontFamily: theme.fonts.sansRegular,
-      fontSize: 15,
-      lineHeight: 24,
-      color: theme.colors.ink,
-    },
     attachmentActions: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -854,14 +833,9 @@ function createStyles(theme: AppTheme) {
     },
     modalFooter: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-end',
       alignItems: 'center',
       gap: 16,
-    },
-    characterCount: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 12,
-      color: theme.colors.muted,
     },
     publishButton: {
       minHeight: 48,
@@ -878,12 +852,6 @@ function createStyles(theme: AppTheme) {
       fontFamily: theme.fonts.sansBold,
       fontSize: 14,
       color: theme.colors.card,
-    },
-    composerError: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 13,
-      lineHeight: 20,
-      color: '#A84E3B',
     },
   });
 }
