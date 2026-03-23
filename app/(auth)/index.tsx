@@ -3,10 +3,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AuthButton } from '../../src/components/AuthButton';
 import { AuthShell } from '../../src/components/AuthShell';
 import { useAuth } from '../../src/auth/AuthContext';
+import { api } from '../../src/lib/api';
 import { AppTheme, useTheme } from '../../src/theme';
 
 export default function WelcomeScreen() {
-  const { loginWithOAuth, isLoading } = useAuth();
+  const { loginWithOAuth, isLoading, error } = useAuth();
   const { theme } = useTheme();
   const styles = createStyles(theme);
 
@@ -21,6 +22,7 @@ export default function WelcomeScreen() {
           Interaction happens through private conversations like “I can help” and
           “I built something similar”, not public comment ladders.
         </Text>
+        <Text style={styles.endpoint}>API: {api.baseUrl}</Text>
       </View>
 
       <AuthButton
@@ -55,6 +57,8 @@ export default function WelcomeScreen() {
       <Link href="/(auth)/signup" style={styles.linkSecondary}>
         New here? Create your account
       </Link>
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
     </AuthShell>
   );
 }
@@ -68,6 +72,12 @@ function createStyles(theme: AppTheme) {
     fontFamily: theme.fonts.sansRegular,
     fontSize: 14,
     lineHeight: 22,
+    color: theme.colors.muted,
+  },
+  endpoint: {
+    fontFamily: theme.fonts.sansMedium,
+    fontSize: 12,
+    lineHeight: 18,
     color: theme.colors.muted,
   },
   oauthColumn: {
@@ -84,6 +94,13 @@ function createStyles(theme: AppTheme) {
     fontFamily: theme.fonts.sansMedium,
     color: theme.colors.muted,
     fontSize: 14,
+  },
+  error: {
+    textAlign: 'center',
+    fontFamily: theme.fonts.sansMedium,
+    color: '#A84E3B',
+    fontSize: 13,
+    lineHeight: 20,
   },
   });
 }

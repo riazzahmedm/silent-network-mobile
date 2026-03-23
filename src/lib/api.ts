@@ -1,13 +1,19 @@
+import { Platform } from 'react-native';
 import type {
   AuthResponse,
   LoginPayload,
   SessionResponse,
   SignupPayload,
 } from '../types/auth';
+import type {
+  CreatePostPayload,
+  FeedResponse,
+  QueryFeedParams,
+} from '../types/feed';
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ||
-  'http://localhost:3000';
+  (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://127.0.0.1:3000');
 
 type RequestOptions = {
   method?: 'GET' | 'POST';
@@ -25,16 +31,31 @@ class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestOptions = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: options.method ?? 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.token
-        ? { Authorization: `Bearer ${options.token}` }
-        : {}),
-    },
-    ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.token
+          ? { Authorization: `Bearer ${options.token}` }
+          : {}),
+      },
+      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+    });
+  } catch {
+    const localhostHint =
+      API_BASE_URL.includes('127.0.0.1') ||
+      API_BASE_URL.includes('localhost') ||
+      API_BASE_URL.includes('10.0.2.2');
+
+    const message = localhostHint
+      ? `Cannot reach the API at ${API_BASE_URL}. If you are on a physical device, start Expo with EXPO_PUBLIC_API_BASE_URL pointed at your Mac's LAN IP.`
+      : `Cannot reach the API at ${API_BASE_URL}.`;
+
+    throw new ApiError(message, 0);
+  }
 
   if (!response.ok) {
     let message = 'Something went wrong';
@@ -79,6 +100,29 @@ export const api = {
     return request<{ url: string }>(
       `/auth/oauth/${provider}/url?redirect=${encodeURIComponent(redirect)}`,
     );
+  },
+  getFeed(params: QueryFeedParams = {}) {
+    const searchParams = new URLSearchParams();
+
+    if (params.cursor) {
+      searchParams.set('cursor', params.cursor);
+    }
+    if (params.type) {
+      searchParams.set('type', params.type);
+    }
+    if (params.limit) {
+      searchParams.set('limit', String(params.limit));
+    }
+
+    const query = searchParams.toString();
+    return request<FeedResponse>(`/feed${query ? `?${query}` : ''}`);
+  },
+  createPost(payload: CreatePostPayload, token: string) {
+    return request('/posts', {
+      method: 'POST',
+      token,
+      body: payload,
+    });
   },
 };
 

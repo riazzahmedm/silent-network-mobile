@@ -9,6 +9,19 @@ type AuthFieldProps = {
   secureTextEntry?: boolean;
   autoCapitalize?: 'none' | 'words' | 'sentences' | 'characters';
   keyboardType?: 'default' | 'email-address';
+  autoComplete?:
+    | 'name'
+    | 'email'
+    | 'username'
+    | 'password'
+    | 'password-new'
+    | 'off';
+  textContentType?:
+    | 'name'
+    | 'emailAddress'
+    | 'username'
+    | 'password'
+    | 'newPassword';
 };
 
 export function AuthField({
@@ -19,6 +32,8 @@ export function AuthField({
   secureTextEntry,
   autoCapitalize = 'none',
   keyboardType = 'default',
+  autoComplete = 'off',
+  textContentType,
 }: AuthFieldProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -34,6 +49,9 @@ export function AuthField({
         secureTextEntry={secureTextEntry}
         autoCapitalize={autoCapitalize}
         keyboardType={keyboardType}
+        autoComplete={autoComplete}
+        textContentType={textContentType}
+        autoCorrect={false}
         style={styles.input}
       />
     </View>

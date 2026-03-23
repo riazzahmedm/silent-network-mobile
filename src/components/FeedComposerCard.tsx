@@ -1,15 +1,39 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { PostType } from '../types/feed';
 import { AppTheme, useTheme } from '../theme';
 
-export function FeedComposerCard() {
+type FeedComposerCardProps = {
+  onSelectType?: (type: PostType) => void;
+  disabled?: boolean;
+};
+
+export function FeedComposerCard({
+  onSelectType,
+  disabled,
+}: FeedComposerCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const options = [
-    { label: 'Building', icon: 'hammer-outline', tone: theme.colors.building },
-    { label: 'Learning', icon: 'book-outline', tone: theme.colors.learning },
-    { label: 'Struggling', icon: 'construct-outline', tone: theme.colors.struggling },
+    {
+      label: 'Building',
+      icon: 'hammer-outline',
+      tone: theme.colors.building,
+      type: 'BUILDING' as const,
+    },
+    {
+      label: 'Learning',
+      icon: 'book-outline',
+      tone: theme.colors.learning,
+      type: 'LEARNING' as const,
+    },
+    {
+      label: 'Struggling',
+      icon: 'construct-outline',
+      tone: theme.colors.struggling,
+      type: 'STRUGGLING' as const,
+    },
   ] as const;
 
   return (
@@ -30,7 +54,12 @@ export function FeedComposerCard() {
 
       <View style={styles.row}>
         {options.map((option) => (
-          <TouchableOpacity key={option.label} style={styles.option}>
+          <TouchableOpacity
+            key={option.label}
+            style={[styles.option, disabled && styles.optionDisabled]}
+            disabled={disabled}
+            onPress={() => onSelectType?.(option.type)}
+          >
             <View style={[styles.optionIcon, { backgroundColor: `${option.tone}18` }]}>
               <Ionicons name={option.icon} size={18} color={option.tone} />
             </View>
@@ -97,6 +126,9 @@ function createStyles(theme: AppTheme) {
       borderColor: theme.colors.overlayStrong,
       padding: 14,
       gap: 12,
+    },
+    optionDisabled: {
+      opacity: 0.65,
     },
     optionIcon: {
       height: 34,

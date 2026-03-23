@@ -1,20 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { FeedPost, PostType } from '../types/feed';
 import { AppTheme, useTheme } from '../theme';
-
-type AccentTone = 'building' | 'learning' | 'struggling';
-
-type FeedPost = {
-  id: string;
-  type: string;
-  author: string;
-  handle: string;
-  postedAt: string;
-  content: string;
-  accent: AccentTone;
-  actions: string[];
-};
 
 type FeedPostCardProps = {
   post: FeedPost;
@@ -23,12 +11,20 @@ type FeedPostCardProps = {
 export function FeedPostCard({ post }: FeedPostCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
-  const toneMap = {
-    building: theme.colors.building,
-    learning: theme.colors.learning,
-    struggling: theme.colors.struggling,
+  const toneMap: Record<PostType, string> = {
+    BUILDING: theme.colors.building,
+    LEARNING: theme.colors.learning,
+    STRUGGLING: theme.colors.struggling,
   } as const;
-  const tone = toneMap[post.accent];
+  const tone = toneMap[post.type];
+  const authorName = post.user.name || post.user.username;
+  const handle = `@${post.user.username}`;
+  const actionMap: Record<PostType, string[]> = {
+    BUILDING: ['I can help', 'Built something similar'],
+    LEARNING: ['Learned this too', 'I can help'],
+    STRUGGLING: ['I can help', 'Built something similar'],
+  };
+  const actions = actionMap[post.type];
 
   return (
     <View style={styles.card}>
@@ -40,25 +36,34 @@ export function FeedPostCard({ post }: FeedPostCardProps) {
       />
       <View style={styles.topRow}>
         <View style={[styles.typePill, { backgroundColor: `${tone}18` }]}>
-          <Text style={[styles.typeLabel, { color: tone }]}>{post.type}</Text>
+          <Text style={[styles.typeLabel, { color: tone }]}>{formatTypeLabel(post.type)}</Text>
         </View>
-        <Text style={styles.time}>{post.postedAt}</Text>
+        <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
       </View>
 
       <Text style={styles.content}>{post.content}</Text>
 
+      {post.media.length > 0 ? (
+        <View style={styles.mediaBadge}>
+          <Ionicons name="attach-outline" size={14} color={theme.colors.muted} />
+          <Text style={styles.mediaBadgeText}>
+            {post.media.length} attachment{post.media.length > 1 ? 's' : ''}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.authorRow}>
         <View style={[styles.avatar, { backgroundColor: tone }]}>
-          <Text style={styles.avatarLabel}>{post.author.slice(0, 1)}</Text>
+          <Text style={styles.avatarLabel}>{authorName.slice(0, 1).toUpperCase()}</Text>
         </View>
         <View>
-          <Text style={styles.author}>{post.author}</Text>
-          <Text style={styles.handle}>{post.handle}</Text>
+          <Text style={styles.author}>{authorName}</Text>
+          <Text style={styles.handle}>{handle}</Text>
         </View>
       </View>
 
       <View style={styles.actionRow}>
-        {post.actions.map((action) => (
+        {actions.map((action) => (
           <TouchableOpacity key={action} style={styles.actionButton}>
             <Ionicons name="arrow-up-circle-outline" size={16} color={tone} />
             <Text style={styles.actionText}>{action}</Text>
@@ -67,6 +72,42 @@ export function FeedPostCard({ post }: FeedPostCardProps) {
       </View>
     </View>
   );
+}
+
+function formatTypeLabel(type: PostType) {
+  return type.charAt(0) + type.slice(1).toLowerCase();
+}
+
+function formatRelativeTime(value: string) {
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) {
+    return '';
+  }
+
+  const seconds = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
+  if (seconds < 60) {
+    return 'now';
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) {
+    return `${days}d ago`;
+  }
+
+  return new Date(value).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function createStyles(theme: AppTheme) {
@@ -116,6 +157,23 @@ function createStyles(theme: AppTheme) {
       fontSize: 15,
       lineHeight: 27,
       color: theme.colors.ink,
+    },
+    mediaBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      alignSelf: 'flex-start',
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+    },
+    mediaBadgeText: {
+      fontFamily: theme.fonts.sansMedium,
+      fontSize: 12,
+      color: theme.colors.muted,
     },
     authorRow: {
       flexDirection: 'row',
