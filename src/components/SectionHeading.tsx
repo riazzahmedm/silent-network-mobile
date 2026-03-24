@@ -27,7 +27,6 @@ export function SectionHeading({
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     container: {
-      paddingHorizontal: 20,
       paddingTop: 38,
       paddingBottom: 22,
     },
@@ -40,11 +39,12 @@ function createStyles(theme: AppTheme) {
       marginBottom: 8,
     },
     title: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 31,
-      lineHeight: 36,
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 26,
+      lineHeight: 31,
       color: theme.colors.ink,
-      marginBottom: 10,
+      letterSpacing: -0.4,
+      marginBottom: 8,
     },
     detail: {
       fontFamily: theme.fonts.sansRegular,

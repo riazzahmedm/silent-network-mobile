@@ -17,11 +17,12 @@ export function BuildMapMiniCard({ rows }: BuildMapMiniCardProps) {
   } as const;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.wrapper}>
       <Text style={styles.eyebrow}>Your Journey</Text>
       <Text style={styles.title}>A visual diary of recent coding days</Text>
 
-      <View style={styles.grid}>
+      <View style={styles.gridShell}>
+        <View style={styles.grid}>
         {rows.map((row, rowIndex) => (
           <View key={`mini-row-${rowIndex}`} style={styles.row}>
             {row.map((tone, columnIndex) => (
@@ -35,6 +36,7 @@ export function BuildMapMiniCard({ rows }: BuildMapMiniCardProps) {
             ))}
           </View>
         ))}
+        </View>
       </View>
     </View>
   );
@@ -42,13 +44,9 @@ export function BuildMapMiniCard({ rows }: BuildMapMiniCardProps) {
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
-    card: {
-      borderRadius: 28,
-      backgroundColor: theme.colors.card,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      padding: 20,
-      gap: 12,
+    wrapper: {
+      paddingHorizontal: 20,
+      gap: 10,
     },
     eyebrow: {
       fontFamily: theme.fonts.sansBold,
@@ -61,6 +59,13 @@ function createStyles(theme: AppTheme) {
       fontFamily: theme.fonts.sansMedium,
       fontSize: 15,
       color: theme.colors.ink,
+    },
+    gridShell: {
+      borderRadius: 22,
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+      padding: 16,
     },
     grid: {
       gap: 6,

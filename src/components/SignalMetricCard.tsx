@@ -27,18 +27,20 @@ export function SignalMetricCard({ signal }: SignalMetricCardProps) {
   const tone = toneMap[signal.tone];
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { borderLeftColor: tone }]}>
       <View style={styles.topRow}>
         <View style={[styles.iconBadge, { backgroundColor: `${tone}16` }]}>
           <View style={[styles.iconDot, { backgroundColor: tone }]} />
         </View>
+        <Text style={styles.value}>
+          {signal.value}
+          <Text style={styles.subtitle}> {signal.subtitle}</Text>
+        </Text>
+      </View>
+      <View style={styles.bottomRow}>
+        <Text style={styles.title}>{signal.title}</Text>
         <Text style={styles.milestone}>{signal.milestone || 'In Progress'}</Text>
       </View>
-      <Text style={styles.title}>{signal.title}</Text>
-      <Text style={styles.value}>
-        {signal.value}
-        <Text style={styles.subtitle}> {signal.subtitle}</Text>
-      </Text>
     </View>
   );
 }
@@ -46,23 +48,25 @@ export function SignalMetricCard({ signal }: SignalMetricCardProps) {
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     card: {
-      borderRadius: 28,
-      backgroundColor: theme.colors.card,
+      borderRadius: 20,
+      backgroundColor: theme.colors.cardMuted,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 18,
-      gap: 10,
+      borderLeftWidth: 4,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      gap: 12,
     },
     topRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
       alignItems: 'center',
       gap: 10,
     },
     iconBadge: {
       height: 38,
       width: 38,
-      borderRadius: 14,
+      borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -71,14 +75,21 @@ function createStyles(theme: AppTheme) {
       width: 14,
       borderRadius: 999,
     },
+    bottomRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      gap: 12,
+    },
     title: {
       fontFamily: theme.fonts.sansMedium,
       fontSize: 13,
       color: theme.colors.muted,
+      flex: 1,
     },
     value: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 30,
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 24,
       color: theme.colors.ink,
     },
     subtitle: {
@@ -92,6 +103,8 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.plum,
       textTransform: 'uppercase',
       letterSpacing: 1.6,
+      flexShrink: 1,
+      textAlign: 'right',
     },
   });
 }

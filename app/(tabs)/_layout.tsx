@@ -12,12 +12,15 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: theme.colors.muted,
         tabBarShowLabel: true,
         tabBarStyle: {
-          height: 78,
-          paddingTop: 10,
-          paddingBottom: 14,
+          height: 76,
+          paddingTop: 8,
+          paddingBottom: 12,
           backgroundColor: theme.colors.mist,
           borderTopColor: theme.colors.line,
           borderTopWidth: 1,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
         tabBarLabelStyle: {
           fontFamily: theme.fonts.sansMedium,
@@ -29,19 +32,25 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="grid-outline" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="feed"
+        options={{
           title: 'Feed',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="sparkles-outline" color={color} size={size} />
+            <Ionicons name="flash-outline" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="signals"
         options={{
-          title: 'Dev Signals',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="analytics-outline" color={color} size={size} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -58,7 +67,7 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle-outline" color={color} size={size} />
+            <Ionicons name="person-outline" color={color} size={size} />
           ),
         }}
       />

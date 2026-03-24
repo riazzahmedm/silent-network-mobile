@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,8 +13,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/auth/AuthContext';
-import { buildMapRowsFromDays } from '../../src/components/BuildMapCard';
-import { BuildMapMiniCard } from '../../src/components/BuildMapMiniCard';
+import { buildMapRowsFromDays, BuildMapCard } from '../../src/components/BuildMapCard';
+import { MilestoneBadgePill } from '../../src/components/MilestoneBadgePill';
+import { SectionHeading } from '../../src/components/SectionHeading';
+import { SignalMetricCard, toSignalCardMetric } from '../../src/components/SignalMetricCard';
 import { api, ApiError } from '../../src/lib/api';
 import type { BuildMapResponse, SignalsResponse } from '../../src/types/signals';
 import { AppTheme, useTheme } from '../../src/theme';
@@ -27,6 +30,7 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   const loadData = useCallback(
     async (refresh = false) => {
@@ -71,6 +75,17 @@ export default function ProfileScreen() {
     () => buildMapRowsFromDays(buildMap?.days ?? []),
     [buildMap],
   );
+  const signalCards = useMemo(() => {
+    if (!signals) {
+      return [];
+    }
+
+    return [
+      toSignalCardMetric(signals.builderSignal, 'building'),
+      toSignalCardMetric(signals.learningSignal, 'learning'),
+      toSignalCardMetric(signals.struggleSignal, 'struggling'),
+    ];
+  }, [signals]);
 
   const profileName = signals?.user.name || user?.name || signals?.user.username || user?.username || 'Developer';
   const profileHandle = signals?.user.username || user?.username || 'dev';
@@ -136,6 +151,16 @@ export default function ProfileScreen() {
           <Text style={styles.bio}>
             {user?.email || 'Shipping calm software for developers who want signal, not status.'}
           </Text>
+          {signals?.user.badges?.length ? (
+            <View style={styles.badgesRow}>
+              {signals.user.badges.map((badge) => (
+                <MilestoneBadgePill
+                  key={`${badge.kind}-${badge.label}`}
+                  badge={badge}
+                />
+              ))}
+            </View>
+          ) : null}
         </LinearGradient>
 
         {isLoading ? (
@@ -179,14 +204,68 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            <BuildMapMiniCard rows={buildMapRows} />
+            <SectionHeading
+              eyebrow="Signals"
+              title="Your developer signals"
+              detail="Consistency, learning, and debugging history live inside your profile."
+            />
+
+            <View style={styles.signalGrid}>
+              {signalCards.map((signal) => (
+                <SignalMetricCard key={signal.title} signal={signal} />
+              ))}
+            </View>
+
+            <SectionHeading
+              eyebrow="Journey"
+              title="Your developer map"
+              detail="Multiple updates on one day become layered tiles instead of a single flattened status."
+            />
+
+            <BuildMapCard rows={buildMapRows} />
           </>
         )}
 
-        <Pressable style={styles.logoutButton} onPress={logout}>
+        <Pressable
+          style={styles.logoutButton}
+          onPress={() => setIsLogoutConfirmOpen(true)}
+        >
           <Text style={styles.logoutLabel}>Log out</Text>
         </Pressable>
       </ScrollView>
+
+      <Modal
+        visible={isLogoutConfirmOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsLogoutConfirmOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Log out?</Text>
+            <Text style={styles.confirmText}>
+              Your session will be cleared on this device. You can log back in anytime.
+            </Text>
+            <View style={styles.confirmActions}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => setIsLogoutConfirmOpen(false)}
+              >
+                <Text style={styles.cancelLabel}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.confirmButton}
+                onPress={() => {
+                  setIsLogoutConfirmOpen(false);
+                  void logout();
+                }}
+              >
+                <Text style={styles.confirmLabel}>Log out</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -204,8 +283,8 @@ function createStyles(theme: AppTheme) {
       gap: 22,
     },
     hero: {
-      borderRadius: 34,
-      padding: 28,
+      borderRadius: 28,
+      padding: 24,
       gap: 10,
     },
     heroHeaderRow: {
@@ -250,7 +329,7 @@ function createStyles(theme: AppTheme) {
     avatar: {
       height: 68,
       width: 68,
-      borderRadius: 24,
+      borderRadius: 20,
       backgroundColor: theme.colors.ink,
       alignItems: 'center',
       justifyContent: 'center',
@@ -262,8 +341,9 @@ function createStyles(theme: AppTheme) {
       fontSize: 24,
     },
     name: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 38,
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 32,
+      letterSpacing: -0.6,
       color: theme.colors.ink,
     },
     role: {
@@ -279,22 +359,27 @@ function createStyles(theme: AppTheme) {
       maxWidth: 300,
       marginTop: 6,
     },
+    badgesRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 10,
+    },
     metricsRow: {
       flexDirection: 'row',
       gap: 14,
     },
     metricTile: {
       flex: 1,
-      borderRadius: 24,
-      backgroundColor: theme.colors.card,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      padding: 18,
-      gap: 8,
+      borderRadius: 18,
+      backgroundColor: theme.colors.cardMuted,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      gap: 6,
     },
     metricValue: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 26,
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 22,
       color: theme.colors.ink,
     },
     metricLabel: {
@@ -303,11 +388,9 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.muted,
     },
     section: {
-      borderRadius: 24,
-      backgroundColor: theme.colors.card,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      padding: 20,
+      borderRadius: 20,
+      backgroundColor: theme.colors.cardMuted,
+      padding: 18,
       gap: 16,
     },
     sectionEyebrow: {
@@ -331,6 +414,9 @@ function createStyles(theme: AppTheme) {
       fontFamily: theme.fonts.sansRegular,
       fontSize: 14,
       color: theme.colors.muted,
+    },
+    signalGrid: {
+      gap: 14,
     },
     logoutButton: {
       borderRadius: 18,
@@ -375,6 +461,68 @@ function createStyles(theme: AppTheme) {
     retryLabel: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 13,
+      color: theme.colors.card,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(17, 16, 14, 0.26)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+    },
+    confirmCard: {
+      width: '100%',
+      borderRadius: 28,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+      padding: 22,
+      gap: 14,
+      ...theme.shadows.float,
+    },
+    confirmTitle: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 18,
+      color: theme.colors.ink,
+    },
+    confirmText: {
+      fontFamily: theme.fonts.sansRegular,
+      fontSize: 14,
+      lineHeight: 22,
+      color: theme.colors.muted,
+    },
+    confirmActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+      marginTop: 4,
+    },
+    cancelButton: {
+      minHeight: 46,
+      borderRadius: 16,
+      paddingHorizontal: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+    },
+    cancelLabel: {
+      fontFamily: theme.fonts.sansMedium,
+      fontSize: 14,
+      color: theme.colors.ink,
+    },
+    confirmButton: {
+      minHeight: 46,
+      borderRadius: 16,
+      paddingHorizontal: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.ink,
+    },
+    confirmLabel: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 14,
       color: theme.colors.card,
     },
   });

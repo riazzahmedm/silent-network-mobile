@@ -31,7 +31,10 @@ export function ConversationPreviewCard({
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.topRow}>
-        <Text style={[styles.badge, { color: accent }]}>{thread.title}</Text>
+        <View style={styles.titleRow}>
+          <View style={[styles.accentDot, { backgroundColor: accent }]} />
+          <Text style={[styles.badge, { color: accent }]}>{thread.title}</Text>
+        </View>
         <Text style={styles.time}>{thread.time}</Text>
       </View>
       <Text style={styles.name}>{thread.name}</Text>
@@ -43,17 +46,27 @@ export function ConversationPreviewCard({
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     card: {
-      borderRadius: 26,
-      backgroundColor: theme.colors.card,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      padding: 18,
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.line,
       gap: 8,
     },
     topRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+      paddingRight: 12,
+    },
+    accentDot: {
+      height: 8,
+      width: 8,
+      borderRadius: 999,
     },
     badge: {
       fontFamily: theme.fonts.sansBold,

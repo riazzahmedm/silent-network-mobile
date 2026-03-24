@@ -1,3 +1,5 @@
+import type { MilestoneBadge } from './feed';
+
 export type SignalMetric = {
   label: string;
   value: number;
@@ -11,6 +13,7 @@ export type SignalsResponse = {
     username: string;
     name?: string | null;
     avatarUrl?: string | null;
+    badges: MilestoneBadge[];
   };
   builderSignal: SignalMetric;
   learningSignal: SignalMetric;

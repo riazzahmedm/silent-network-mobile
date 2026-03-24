@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { AnimatedPressable } from './AnimatedPressable';
 import type { PostType } from '../types/feed';
 import { AppTheme, useTheme } from '../theme';
 
@@ -37,95 +38,95 @@ export function FeedComposerCard({
   ] as const;
 
   return (
-    <LinearGradient
-      colors={[theme.colors.night, theme.colors.nightSoft, '#46564B']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.card}
-    >
+    <View style={styles.wrapper}>
       <View style={styles.topRow}>
-        <Text style={styles.kicker}>Start Here</Text>
+        <View>
+          <Text style={styles.kicker}>Share a Signal</Text>
+          <Text style={styles.title}>Choose the kind of update you want to log.</Text>
+        </View>
         <View style={styles.orbital} />
       </View>
-      <Text style={styles.title}>Share developer work</Text>
-      <Text style={styles.copy}>
-        Log what you shipped, learned, or got stuck on. The app handles the structure.
-      </Text>
 
       <View style={styles.row}>
         {options.map((option) => (
-          <TouchableOpacity
+          <AnimatedPressable
             key={option.label}
             style={[styles.option, disabled && styles.optionDisabled]}
             disabled={disabled}
+            scaleTo={0.975}
             onPress={() => onSelectType?.(option.type)}
           >
+            <LinearGradient
+              colors={[`${option.tone}22`, `${option.tone}08`]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.optionGlow}
+            />
             <View style={[styles.optionIcon, { backgroundColor: `${option.tone}18` }]}>
               <Ionicons name={option.icon} size={18} color={option.tone} />
             </View>
             <Text style={styles.optionLabel}>{option.label}</Text>
-          </TouchableOpacity>
+          </AnimatedPressable>
         ))}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
-    card: {
+    wrapper: {
       marginHorizontal: 20,
       marginTop: -10,
-      borderRadius: 26,
-      borderWidth: 1,
-      borderColor: theme.mode === 'dark' ? '#324036' : theme.colors.line,
-      padding: 22,
-      ...theme.shadows.float,
+      gap: 14,
     },
     topRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 12,
+      alignItems: 'flex-start',
+      gap: 12,
     },
     kicker: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 11,
       letterSpacing: 2.2,
       textTransform: 'uppercase',
-      color: theme.colors.amber,
+      color: theme.colors.plum,
+      marginBottom: 6,
     },
     orbital: {
       height: 12,
       width: 12,
       borderRadius: 999,
       backgroundColor: theme.colors.amber,
+      marginTop: 6,
     },
     title: {
-      fontFamily: theme.fonts.sansBold,
-      fontSize: 17,
-      color: theme.colors.card,
-      marginBottom: 8,
-    },
-    copy: {
-      fontFamily: theme.fonts.sansRegular,
-      fontSize: 14,
+      fontFamily: theme.fonts.sansMedium,
+      fontSize: 15,
       lineHeight: 24,
-      color: theme.colors.heroSubtleText,
+      color: theme.colors.ink,
     },
     row: {
       flexDirection: 'row',
       gap: 12,
-      marginTop: 20,
     },
     option: {
       flex: 1,
-      borderRadius: 18,
-      backgroundColor: theme.colors.overlay,
+      borderRadius: 20,
+      backgroundColor: theme.colors.cardMuted,
       borderWidth: 1,
-      borderColor: theme.colors.overlayStrong,
+      borderColor: theme.colors.line,
       padding: 14,
       gap: 12,
+      overflow: 'hidden',
+    },
+    optionGlow: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
     },
     optionDisabled: {
       opacity: 0.65,
@@ -139,7 +140,7 @@ function createStyles(theme: AppTheme) {
     },
     optionLabel: {
       fontFamily: theme.fonts.sansMedium,
-      color: theme.colors.card,
+      color: theme.colors.ink,
       fontSize: 13,
     },
   });
