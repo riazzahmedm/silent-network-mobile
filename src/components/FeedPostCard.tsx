@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { resolveMediaUrl } from '../lib/api';
 import { toPlainTextPreview } from '../posts/markdown';
-import type { FeedPost, PostType } from '../types/feed';
+import { AnimatedPressable } from './AnimatedPressable';
+import { MilestoneBadgePill } from './MilestoneBadgePill';
+import type { FeedPost, MilestoneBadge, PostType } from '../types/feed';
 import type { InteractionType } from '../types/messaging';
 import { AppTheme, useTheme } from '../theme';
 
@@ -11,16 +12,22 @@ type FeedPostCardProps = {
   post: FeedPost;
   onActionPress?: (post: FeedPost, type: InteractionType) => void;
   onPress?: (post: FeedPost) => void;
+  onModerationPress?: (post: FeedPost) => void;
   disabled?: boolean;
   hideActions?: boolean;
+  preferredBadgeKind?: MilestoneBadge['kind'];
+  showModerationAction?: boolean;
 };
 
 export function FeedPostCard({
   post,
   onActionPress,
   onPress,
+  onModerationPress,
   disabled,
   hideActions,
+  preferredBadgeKind,
+  showModerationAction,
 }: FeedPostCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -29,9 +36,16 @@ export function FeedPostCard({
     LEARNING: theme.colors.learning,
     STRUGGLING: theme.colors.struggling,
   } as const;
+  const typeIconMap: Record<PostType, keyof typeof Ionicons.glyphMap> = {
+    BUILDING: 'hammer-outline',
+    LEARNING: 'book-outline',
+    STRUGGLING: 'construct-outline',
+  };
   const tone = toneMap[post.type];
+  const typeIcon = typeIconMap[post.type];
   const authorName = post.user.name || post.user.username;
   const handle = `@${post.user.username}`;
+  const primaryBadge = selectPrimaryBadge(post.user.badges, preferredBadgeKind);
   const actionMap: Record<PostType, Array<{ label: string; type: InteractionType }>> = {
     BUILDING: [
       { label: 'I can help debug this', type: 'I_CAN_HELP' },
@@ -52,18 +66,40 @@ export function FeedPostCard({
 
   return (
     <View style={styles.card}>
-      <LinearGradient
-        colors={['rgba(255,255,255,0.5)', 'rgba(255,255,255,0.02)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.cardGlow}
-      />
+      <View style={[styles.accentBar, { backgroundColor: tone }]} />
       <Pressable onPress={() => onPress?.(post)} style={styles.pressableContent}>
         <View style={styles.topRow}>
-          <View style={[styles.typePill, { backgroundColor: `${tone}18` }]}>
+          <View
+            style={[
+              styles.typePill,
+              {
+                backgroundColor: `${tone}18`,
+                borderColor: `${tone}38`,
+              },
+            ]}
+          >
+            <Ionicons name={typeIcon} size={14} color={tone} />
             <Text style={[styles.typeLabel, { color: tone }]}>{formatTypeLabel(post.type)}</Text>
           </View>
-          <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
+          <View style={styles.topRowMeta}>
+            <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
+            {showModerationAction ? (
+              <Pressable
+                onPress={(event) => {
+                  event.stopPropagation();
+                  onModerationPress?.(post);
+                }}
+                hitSlop={10}
+                style={styles.moreButton}
+              >
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={16}
+                  color={theme.colors.muted}
+                />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
 
         <Text style={styles.content}>{toPlainTextPreview(post.content)}</Text>
@@ -92,8 +128,11 @@ export function FeedPostCard({
           <View style={[styles.avatar, { backgroundColor: tone }]}>
             <Text style={styles.avatarLabel}>{authorName.slice(0, 1).toUpperCase()}</Text>
           </View>
-          <View>
-            <Text style={styles.author}>{authorName}</Text>
+          <View style={styles.authorMeta}>
+            <View style={styles.authorTopLine}>
+              <Text style={styles.author}>{authorName}</Text>
+              {primaryBadge ? <MilestoneBadgePill badge={primaryBadge} compact /> : null}
+            </View>
             <Text style={styles.handle}>{handle}</Text>
           </View>
         </View>
@@ -102,20 +141,38 @@ export function FeedPostCard({
       {!hideActions ? (
         <View style={styles.actionRow}>
           {actions.map((action) => (
-            <TouchableOpacity
+            <AnimatedPressable
               key={action.label}
               style={[styles.actionButton, disabled && styles.actionButtonDisabled]}
               disabled={disabled}
+              scaleTo={0.97}
               onPress={() => onActionPress?.(post, action.type)}
             >
               <Ionicons name="arrow-up-circle-outline" size={16} color={tone} />
               <Text style={styles.actionText}>{action.label}</Text>
-            </TouchableOpacity>
+            </AnimatedPressable>
           ))}
         </View>
       ) : null}
     </View>
   );
+}
+
+function selectPrimaryBadge(
+  badges: MilestoneBadge[],
+  preferredKind?: MilestoneBadge['kind'],
+) {
+  if (preferredKind) {
+    const matching = badges
+      .filter((badge) => badge.kind === preferredKind)
+      .sort((a, b) => b.threshold - a.threshold)[0];
+
+    if (matching) {
+      return matching;
+    }
+  }
+
+  return [...badges].sort((a, b) => b.threshold - a.threshold)[0] ?? null;
 }
 
 function formatTypeLabel(type: PostType) {
@@ -157,36 +214,43 @@ function formatRelativeTime(value: string) {
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     card: {
-      borderRadius: 28,
-      backgroundColor: theme.colors.card,
+      borderRadius: 22,
+      backgroundColor: theme.colors.mist,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
-      gap: 18,
+      padding: 18,
+      gap: 16,
       overflow: 'hidden',
     },
-    cardGlow: {
+    accentBar: {
       position: 'absolute',
       top: 0,
       left: 0,
       right: 0,
-      bottom: 0,
-      borderRadius: 28,
+      height: 3,
     },
     pressableContent: {
-      gap: 18,
+      gap: 16,
     },
     topRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      gap: 12,
+    },
+    topRowMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
     },
     typePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 7,
       borderWidth: 1,
-      borderColor: `${theme.colors.line}90`,
     },
     typeLabel: {
       fontFamily: theme.fonts.sansBold,
@@ -199,10 +263,20 @@ function createStyles(theme: AppTheme) {
       fontSize: 12,
       color: theme.colors.muted,
     },
+    moreButton: {
+      width: 28,
+      height: 28,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+    },
     content: {
       fontFamily: theme.fonts.sansRegular,
       fontSize: 15,
-      lineHeight: 27,
+      lineHeight: 25,
       color: theme.colors.ink,
     },
     mediaBadge: {
@@ -224,14 +298,24 @@ function createStyles(theme: AppTheme) {
     },
     imagePreview: {
       width: '100%',
-      height: 220,
-      borderRadius: 20,
+      height: 210,
+      borderRadius: 18,
       backgroundColor: theme.colors.cardMuted,
     },
     authorRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
+    },
+    authorMeta: {
+      flex: 1,
+      gap: 4,
+    },
+    authorTopLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flexWrap: 'wrap',
     },
     avatar: {
       height: 42,
@@ -246,7 +330,7 @@ function createStyles(theme: AppTheme) {
       fontSize: 16,
     },
     author: {
-      fontFamily: theme.fonts.sansMedium,
+      fontFamily: theme.fonts.sansBold,
       color: theme.colors.ink,
       fontSize: 14,
     },
@@ -258,18 +342,18 @@ function createStyles(theme: AppTheme) {
     actionRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 12,
+      gap: 8,
     },
     actionButton: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
       borderRadius: 999,
-      paddingHorizontal: 14,
-      paddingVertical: 11,
+      paddingHorizontal: 11,
+      paddingVertical: 9,
       backgroundColor: theme.colors.cardMuted,
       borderWidth: 1,
-      borderColor: theme.colors.line,
+      borderColor: `${theme.colors.line}A0`,
     },
     actionButtonDisabled: {
       opacity: 0.6,

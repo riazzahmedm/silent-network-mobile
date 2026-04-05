@@ -1,12 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
-import * as ImagePicker from 'expo-image-picker';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -17,545 +15,335 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/auth/AuthContext';
+import { AnimatedEntrance } from '../../src/components/AnimatedEntrance';
+import { AnimatedPressable } from '../../src/components/AnimatedPressable';
+import { buildMapRowsFromDays } from '../../src/components/BuildMapCard';
+import { BuildMapMiniCard } from '../../src/components/BuildMapMiniCard';
+import { ConversationPreviewCard } from '../../src/components/ConversationPreviewCard';
 import { FeedComposerCard } from '../../src/components/FeedComposerCard';
-import { FeedPostCard } from '../../src/components/FeedPostCard';
-import { MarkdownComposer } from '../../src/components/MarkdownComposer';
-import { SectionHeading } from '../../src/components/SectionHeading';
+import { SignalMetricCard, toSignalCardMetric } from '../../src/components/SignalMetricCard';
 import { api, ApiError } from '../../src/lib/api';
-import { POST_CONTENT_MAX_LENGTH } from '../../src/posts/markdown';
-import { usePostMutations } from '../../src/posts/PostMutationsContext';
-import type { FeedPost, PostType, UploadableMediaType } from '../../src/types/feed';
-import type { InteractionType } from '../../src/types/messaging';
+import { layout } from '../../src/ui/layout';
+import type { ConversationListItem } from '../../src/types/messaging';
+import type { BuildMapResponse, SignalsResponse } from '../../src/types/signals';
 import { AppTheme, useTheme } from '../../src/theme';
-import { useToast } from '../../src/toast/ToastContext';
 
-type PendingAttachment = {
-  id: string;
-  uri: string;
-  name: string;
-  mimeType: string;
-  mediaType: UploadableMediaType;
+type DashboardState = {
+  signals: SignalsResponse | null;
+  buildMap: BuildMapResponse | null;
+  conversations: ConversationListItem[];
 };
 
-export default function FeedScreen() {
+export default function HomeScreen() {
+  const tabBarHeight = useBottomTabBarHeight();
   const { accessToken, user } = useAuth();
-  const { lastMutation } = usePostMutations();
-  const { showToast } = useToast();
   const { theme } = useTheme();
   const styles = createStyles(theme);
-  const [selectedType, setSelectedType] = useState<PostType | undefined>();
-  const [posts, setPosts] = useState<FeedPost[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [data, setData] = useState<DashboardState>({
+    signals: null,
+    buildMap: null,
+    conversations: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [feedError, setFeedError] = useState<string | null>(null);
-  const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const [composerType, setComposerType] = useState<PostType>('BUILDING');
-  const [composerContent, setComposerContent] = useState('');
-  const [composerError, setComposerError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
-  const [interactionError, setInteractionError] = useState<string | null>(null);
-  const [activeInteractionPostId, setActiveInteractionPostId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const filters = useMemo(
-    () => [
-      { label: 'All Dev Logs', value: undefined },
-      { label: 'Building', value: 'BUILDING' as PostType },
-      { label: 'Learning', value: 'LEARNING' as PostType },
-      { label: 'Debugging', value: 'STRUGGLING' as PostType },
-    ],
-    [],
-  );
+  const loadDashboard = useCallback(
+    async (refresh = false) => {
+      if (!accessToken) {
+        setError('You must be logged in to view home.');
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
 
-  const loadFeed = useCallback(
-    async (options?: { refresh?: boolean; cursor?: string | null }) => {
-      const isRefresh = !!options?.refresh;
-      const cursor = options?.cursor;
-
-      if (isRefresh) {
+      if (refresh) {
         setIsRefreshing(true);
-      } else if (cursor) {
-        setIsLoadingMore(true);
       } else {
-        setIsInitialLoading(true);
+        setIsLoading(true);
       }
 
       try {
-        setFeedError(null);
-        const response = await api.getFeed({
-          type: selectedType,
-          limit: 10,
-          cursor: cursor ?? undefined,
-        });
+        setError(null);
+        const [signals, buildMap, conversations] = await Promise.all([
+          api.getMySignals(accessToken),
+          api.getMyBuildMap(accessToken, 21),
+          api.getConversations(accessToken),
+        ]);
 
-        setPosts((current) =>
-          cursor ? [...current, ...response.items] : response.items,
-        );
-        setHasMore(response.page.hasMore);
-        setNextCursor(response.page.nextCursor ?? null);
-      } catch (error) {
-        setFeedError(
-          error instanceof ApiError ? error.message : 'Failed to load the feed.',
-        );
+        setData({ signals, buildMap, conversations });
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : 'Failed to load home.');
       } finally {
-        setIsInitialLoading(false);
+        setIsLoading(false);
         setIsRefreshing(false);
-        setIsLoadingMore(false);
       }
     },
-    [selectedType],
+    [accessToken],
   );
 
   useEffect(() => {
-    loadFeed();
-  }, [loadFeed]);
+    loadDashboard();
+  }, [loadDashboard]);
 
-  useEffect(() => {
-    if (!lastMutation) {
-      return;
+  const signalCards = useMemo(() => {
+    if (!data.signals) {
+      return [];
     }
 
-    setPosts((current) => {
-      if (lastMutation.kind === 'deleted') {
-        return current.filter((post) => post.id !== lastMutation.postId);
-      }
+    return [
+      toSignalCardMetric(data.signals.builderSignal, 'building'),
+      toSignalCardMetric(data.signals.learningSignal, 'learning'),
+      toSignalCardMetric(data.signals.struggleSignal, 'struggling'),
+    ];
+  }, [data.signals]);
 
-      return current.flatMap((post) => {
-        if (post.id !== lastMutation.post.id) {
-          return [post];
-        }
+  const buildMapRows = useMemo(
+    () => buildMapRowsFromDays(data.buildMap?.days ?? []),
+    [data.buildMap],
+  );
 
-        if (selectedType && lastMutation.post.type !== selectedType) {
-          return [];
-        }
+  const threadPreviews = useMemo(() => {
+    return data.conversations.slice(0, 2).map((conversation) => {
+      const otherParticipant =
+        conversation.participants.find((participant) => participant.id !== user?.id) ??
+        conversation.participants[0];
+      const title = inferConversationTitle(conversation.lastMessage?.content ?? '');
 
-        return [lastMutation.post];
-      });
+      return {
+        id: conversation.id,
+        title,
+        name: otherParticipant?.name || otherParticipant?.username || 'Conversation',
+        snippet: conversation.lastMessage?.content || 'No messages yet',
+        time: formatRelativeTime(
+          conversation.lastMessage?.createdAt ?? conversation.createdAt,
+        ),
+        accent: inferAccent(title),
+      };
     });
-  }, [lastMutation, selectedType]);
+  }, [data.conversations, user?.id]);
 
-  function openComposer(type?: PostType) {
-    setComposerType(type ?? selectedType ?? 'BUILDING');
-    setComposerContent('');
-    setComposerError(null);
-    setPendingAttachments([]);
-    setIsComposerOpen(true);
-  }
-
-  async function handlePickLibraryMedia() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      setComposerError('Media library permission is required to attach images or videos.');
-      showToast({
-        title: 'Permission required',
-        message: 'Allow photo library access to attach images or videos.',
-        type: 'error',
-      });
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images', 'videos'],
-      allowsMultipleSelection: true,
-      quality: 1,
-    });
-
-    if (result.canceled || !result.assets?.length) {
-      return;
-    }
-
-    const nextAttachments: PendingAttachment[] = result.assets
-      .filter((asset) => asset.uri && asset.mimeType)
-      .map((asset, index) => ({
-        id: `${asset.assetId ?? asset.uri}-${index}`,
-        uri: asset.uri,
-        name: asset.fileName || `media-${Date.now()}-${index}`,
-        mimeType: asset.mimeType || 'application/octet-stream',
-        mediaType: asset.type === 'video' ? 'VIDEO' : 'IMAGE',
-      }));
-
-    setPendingAttachments((current) => [...current, ...nextAttachments]);
-    setComposerError(null);
-  }
-
-  async function handlePickDocument() {
-    const result = await DocumentPicker.getDocumentAsync({
-      multiple: true,
-      copyToCacheDirectory: true,
-    });
-
-    if (result.canceled || !result.assets?.length) {
-      return;
-    }
-
-    const nextAttachments: PendingAttachment[] = result.assets
-      .filter((asset) => asset.uri && asset.mimeType)
-      .map((asset, index) => ({
-        id: `${asset.uri}-${index}`,
-        uri: asset.uri,
-        name: asset.name,
-        mimeType: asset.mimeType || 'application/octet-stream',
-        mediaType: 'FILE',
-      }));
-
-    setPendingAttachments((current) => [...current, ...nextAttachments]);
-    setComposerError(null);
-  }
-
-  function removePendingAttachment(id: string) {
-    setPendingAttachments((current) => current.filter((item) => item.id !== id));
-  }
-
-  async function handleSubmitPost() {
-    if (!accessToken) {
-      setComposerError('You must be logged in to post.');
-      showToast({
-        title: 'Login required',
-        message: 'Sign in to publish a dev log.',
-        type: 'error',
-      });
-      return;
-    }
-
-    const trimmedContent = composerContent.trim();
-    if (!trimmedContent) {
-      setComposerError('Write a developer update.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setComposerError(null);
-
-    try {
-      const createdPost = await api.createPost(
-        {
-          type: composerType,
-          content: trimmedContent,
-        },
-        accessToken,
-      );
-
-      let uploadedCount = 0;
-      for (const attachment of pendingAttachments) {
-        await api.uploadMedia(
-          {
-            postId: createdPost.id,
-            type: attachment.mediaType,
-            file: {
-              uri: attachment.uri,
-              name: attachment.name,
-              mimeType: attachment.mimeType,
-            },
-          },
-          accessToken,
-        );
-        uploadedCount += 1;
-      }
-
-      setIsComposerOpen(false);
-      setComposerContent('');
-      setPendingAttachments([]);
-      showToast({
-        title: 'Signal published',
-        message:
-          uploadedCount > 0
-            ? `Your update and ${uploadedCount} attachment${uploadedCount > 1 ? 's are' : ' is'} now in the feed.`
-            : 'Your update is now in the feed.',
-        type: 'success',
-      });
-      await loadFeed({ refresh: true });
-    } catch (error) {
-      const message =
-        error instanceof ApiError ? error.message : 'Failed to publish post.';
-      setComposerError(message);
-      showToast({
-        title: 'Publish failed',
-        message,
-        type: 'error',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleInteraction(post: FeedPost, type: InteractionType) {
-    if (!accessToken) {
-      setInteractionError('You must be logged in to respond privately.');
-      showToast({
-        title: 'Login required',
-        message: 'Sign in to start a private conversation.',
-        type: 'error',
-      });
-      return;
-    }
-
-    setActiveInteractionPostId(post.id);
-    setInteractionError(null);
-
-    try {
-      const response = await api.createInteraction(
-        {
-          postId: post.id,
-          type,
-        },
-        accessToken,
-      );
-      router.push(`/${'conversations'}/${response.conversation.id}`);
-    } catch (error) {
-      const message =
-        error instanceof ApiError
-          ? error.message
-          : 'Failed to open the private conversation.';
-      setInteractionError(message);
-      showToast({
-        title: 'Conversation failed',
-        message,
-        type: 'error',
-      });
-    } finally {
-      setActiveInteractionPostId(null);
-    }
-  }
+  const firstName =
+    data.signals?.user.name?.split(' ')[0] ||
+    user?.name?.split(' ')[0] ||
+    user?.username ||
+    'Developer';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: tabBarHeight + 34 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={() => loadFeed({ refresh: true })}
+            onRefresh={() => loadDashboard(true)}
             tintColor={theme.colors.ink}
           />
         }
       >
-        <LinearGradient
-          colors={[theme.colors.blush, theme.colors.paper, theme.colors.paperDeep]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <View style={styles.heroAuraOne} />
-          <View style={styles.heroAuraTwo} />
-          <View style={styles.heroTopRow}>
-            <View>
-              <Text style={styles.eyebrow}>For Developers</Text>
-              <Text style={styles.heroTitle}>A calm feed for real developer work.</Text>
-            </View>
-            <TouchableOpacity style={styles.composeButton} onPress={() => openComposer()}>
-              <Ionicons name="add" color={theme.colors.card} size={24} />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.heroCopy}>
-            No likes. No follower counts. Just developers sharing what they are building,
-            learning, and debugging.
-          </Text>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}
+        <AnimatedEntrance delay={20}>
+          <LinearGradient
+            colors={[theme.colors.blush, theme.colors.paper, theme.colors.paperDeep]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
           >
-            {filters.map((filter) => {
-              const isActive = filter.value === selectedType || (!filter.value && !selectedType);
+            <Text style={styles.eyebrow}>Home</Text>
+            <Text style={styles.heroTitle}>Welcome back, {firstName}.</Text>
+            <Text style={styles.heroCopy}>
+              Your developer dashboard for shipping, learning, debugging, and keeping
+              conversations moving.
+            </Text>
 
-              return (
-              <Pressable
-                key={filter.label}
-                style={[styles.filterChip, isActive && styles.filterChipActive]}
-                onPress={() => setSelectedType(filter.value)}
-              >
-                <Text
-                  style={[styles.filterLabel, isActive && styles.filterLabelActive]}
-                >
-                  {filter.label}
-                </Text>
-              </Pressable>
-            )})}
-          </ScrollView>
-        </LinearGradient>
+            <View style={styles.quickRow}>
+              <QuickAction
+                label="Open Feed"
+                icon="flash-outline"
+                onPress={() => router.push('/(tabs)/feed')}
+              />
+              <QuickAction
+                label="Inbox"
+                icon="chatbubble-ellipses-outline"
+                onPress={() => router.push('/(tabs)/inbox')}
+              />
+              <QuickAction
+                label="Profile"
+                icon="person-outline"
+                onPress={() => router.push('/(tabs)/profile')}
+              />
+            </View>
+          </LinearGradient>
+        </AnimatedEntrance>
 
-        <FeedComposerCard
-          onSelectType={(type) => openComposer(type)}
-          disabled={isSubmitting}
-        />
+        <AnimatedEntrance delay={60}>
+          <FeedComposerCard
+            fullWidth
+            onSelectType={(type) =>
+              router.push({
+                pathname: '/(tabs)/feed',
+                params: {
+                  compose: '1',
+                  type,
+                },
+              })
+            }
+          />
+        </AnimatedEntrance>
 
-        <SectionHeading
-          eyebrow="Today"
-          title="Developers sharing the actual work"
-          detail="Private responses turn code, bugs, and learnings into conversations, not performances."
-        />
-
-        {interactionError ? (
-          <View style={styles.inlineErrorCard}>
-            <Text style={styles.inlineErrorText}>{interactionError}</Text>
-          </View>
-        ) : null}
-
-        {isInitialLoading ? (
+        {isLoading ? (
           <View style={styles.stateCard}>
             <ActivityIndicator size="small" color={theme.colors.ink} />
-            <Text style={styles.stateText}>Loading feed…</Text>
+            <Text style={styles.stateText}>Loading home…</Text>
           </View>
-        ) : feedError ? (
+        ) : error ? (
           <View style={styles.stateCard}>
-            <Text style={styles.stateTitle}>Feed unavailable</Text>
-            <Text style={styles.stateText}>{feedError}</Text>
+            <Text style={styles.stateTitle}>Home unavailable</Text>
+            <Text style={styles.stateText}>{error}</Text>
             <TouchableOpacity
               style={styles.retryButton}
-              onPress={() => loadFeed({ refresh: true })}
+              onPress={() => loadDashboard(true)}
             >
               <Text style={styles.retryLabel}>Try again</Text>
             </TouchableOpacity>
           </View>
-        ) : posts.length === 0 ? (
-          <View style={styles.stateCard}>
-            <Text style={styles.stateTitle}>Nothing here yet</Text>
-            <Text style={styles.stateText}>
-              Switch the filter or publish the first dev log.
-            </Text>
-          </View>
         ) : (
-          <View style={styles.postsColumn}>
-            {posts.map((post) => (
-              <FeedPostCard
-                key={post.id}
-                post={post}
-                onPress={(selectedPost) => router.push(`/${'posts'}/${selectedPost.id}`)}
-                onActionPress={handleInteraction}
-                disabled={activeInteractionPostId === post.id}
-                hideActions={post.userId === user?.id}
-              />
-            ))}
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionEyebrow}>Today</Text>
+              <Text style={styles.sectionTitle}>Your developer signals</Text>
+            </View>
 
-            {hasMore ? (
-              <TouchableOpacity
-                style={styles.loadMoreButton}
-                onPress={() => loadFeed({ cursor: nextCursor })}
-                disabled={isLoadingMore}
-              >
-                {isLoadingMore ? (
-                  <ActivityIndicator size="small" color={theme.colors.ink} />
-                ) : (
-                  <Text style={styles.loadMoreLabel}>Load more</Text>
-                )}
-              </TouchableOpacity>
-            ) : null}
-          </View>
+            <AnimatedEntrance delay={90} style={styles.signalGrid}>
+              {signalCards.map((signal) => (
+                <SignalMetricCard key={signal.title} signal={signal} />
+              ))}
+            </AnimatedEntrance>
+
+            <AnimatedEntrance delay={120}>
+              <BuildMapMiniCard rows={buildMapRows} />
+            </AnimatedEntrance>
+
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionEyebrow}>Inbox</Text>
+              <Text style={styles.sectionTitle}>Recent private threads</Text>
+            </View>
+
+            {threadPreviews.length > 0 ? (
+              <AnimatedEntrance delay={150} style={styles.threadColumn}>
+                {threadPreviews.map((thread) => (
+                  <ConversationPreviewCard
+                    key={thread.id}
+                    thread={thread}
+                    onPress={() => router.push(`/conversations/${thread.id}`)}
+                  />
+                ))}
+              </AnimatedEntrance>
+            ) : (
+              <View style={styles.stateCard}>
+                <Text style={styles.stateTitle}>No conversations yet</Text>
+                <Text style={styles.stateText}>
+                  Private replies from the feed will start appearing here.
+                </Text>
+              </View>
+            )}
+
+            <AnimatedPressable
+              style={styles.primaryButton}
+              scaleTo={0.98}
+              onPress={() => router.push('/(tabs)/feed')}
+            >
+              <Text style={styles.primaryButtonLabel}>Go to Feed</Text>
+            </AnimatedPressable>
+          </>
         )}
       </ScrollView>
-
-      <Modal
-        visible={isComposerOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsComposerOpen(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Share a dev log</Text>
-              <Pressable onPress={() => setIsComposerOpen(false)}>
-                <Ionicons name="close" size={22} color={theme.colors.ink} />
-              </Pressable>
-            </View>
-
-            <View style={styles.modalTypeRow}>
-              {(['BUILDING', 'LEARNING', 'STRUGGLING'] as PostType[]).map((type) => {
-                const active = composerType === type;
-
-                return (
-                  <Pressable
-                    key={type}
-                    style={[styles.modalTypeChip, active && styles.modalTypeChipActive]}
-                    onPress={() => setComposerType(type)}
-                  >
-                    <Text
-                      style={[
-                        styles.modalTypeLabel,
-                        active && styles.modalTypeLabelActive,
-                      ]}
-                    >
-                      {type.charAt(0) + type.slice(1).toLowerCase()}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <MarkdownComposer
-              value={composerContent}
-              onChangeText={setComposerContent}
-              placeholder="What are you shipping, learning, or debugging today?"
-              maxLength={POST_CONTENT_MAX_LENGTH}
-              minHeight={190}
-              error={composerError}
-              onErrorClear={() => setComposerError(null)}
-            />
-
-            <View style={styles.attachmentActions}>
-              <TouchableOpacity
-                style={styles.attachmentPickerButton}
-                onPress={handlePickLibraryMedia}
-                disabled={isSubmitting}
-              >
-                <Ionicons name="images-outline" size={16} color={theme.colors.ink} />
-                <Text style={styles.attachmentPickerLabel}>Screenshot or Video</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.attachmentPickerButton}
-                onPress={handlePickDocument}
-                disabled={isSubmitting}
-              >
-                <Ionicons name="document-outline" size={16} color={theme.colors.ink} />
-                <Text style={styles.attachmentPickerLabel}>File</Text>
-              </TouchableOpacity>
-            </View>
-
-            {pendingAttachments.length > 0 ? (
-              <View style={styles.attachmentList}>
-                {pendingAttachments.map((attachment) => (
-                  <View key={attachment.id} style={styles.attachmentItem}>
-                    <View style={styles.attachmentItemCopy}>
-                      <Text style={styles.attachmentName} numberOfLines={1}>
-                        {attachment.name}
-                      </Text>
-                      <Text style={styles.attachmentMeta}>{attachment.mediaType}</Text>
-                    </View>
-                    <Pressable onPress={() => removePendingAttachment(attachment.id)}>
-                      <Ionicons name="close-circle" size={18} color={theme.colors.muted} />
-                    </Pressable>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[
-                  styles.publishButton,
-                  (isSubmitting || !composerContent.trim()) && styles.publishButtonDisabled,
-                ]}
-                disabled={isSubmitting || !composerContent.trim()}
-                onPress={handleSubmitPost}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color={theme.colors.card} />
-                ) : (
-                  <Text style={styles.publishLabel}>Publish</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
+}
+
+function QuickAction({
+  label,
+  icon,
+  onPress,
+}: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+}) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
+
+  return (
+    <AnimatedPressable style={styles.quickAction} scaleTo={0.97} onPress={onPress}>
+      <View style={styles.quickActionIcon}>
+        <Ionicons name={icon} size={16} color={theme.colors.ink} />
+      </View>
+      <Text style={styles.quickActionLabel}>{label}</Text>
+    </AnimatedPressable>
+  );
+}
+
+function inferConversationTitle(content: string) {
+  const value = content.toLowerCase();
+  if (value.includes('learned this too')) {
+    return 'I Learned This Too';
+  }
+  if (
+    value.includes('shipped something similar') ||
+    value.includes('built something similar')
+  ) {
+    return 'I Shipped Something Similar';
+  }
+  if (value.includes('help debug') || value.includes('help')) {
+    return 'I Can Help Debug This';
+  }
+  return 'Direct Message';
+}
+
+function inferAccent(title: string): 'building' | 'learning' | 'struggling' {
+  if (title === 'I Learned This Too') {
+    return 'learning';
+  }
+  if (title === 'I Shipped Something Similar') {
+    return 'building';
+  }
+  return 'struggling';
+}
+
+function formatRelativeTime(value: string) {
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) {
+    return '';
+  }
+
+  const seconds = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
+  if (seconds < 60) {
+    return 'now';
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h`;
+  }
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) {
+    return `${days}d`;
+  }
+
+  return new Date(value).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function createStyles(theme: AppTheme) {
@@ -565,120 +353,108 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.paper,
     },
     content: {
-      paddingBottom: 148,
+      gap: layout.sectionGap,
     },
     hero: {
-      paddingHorizontal: 24,
-      paddingTop: 22,
-      paddingBottom: 42,
-      borderBottomLeftRadius: 36,
-      borderBottomRightRadius: 36,
+      marginHorizontal: layout.screenPadding - 4,
+      paddingHorizontal: layout.heroPadding,
+      paddingTop: layout.heroPadding,
+      paddingBottom: layout.heroPadding + 4,
+      borderRadius: layout.radiusHero + 2,
+      borderWidth: 1,
+      borderColor: theme.mode === 'dark' ? theme.colors.line : 'rgba(255,255,255,0.7)',
       overflow: 'hidden',
-    },
-    heroAuraOne: {
-      position: 'absolute',
-      top: -30,
-      right: -20,
-      width: 180,
-      height: 180,
-      borderRadius: 999,
-      backgroundColor:
-        theme.mode === 'dark' ? 'rgba(197,141,61,0.14)' : 'rgba(243,216,199,0.60)',
-      opacity: 0.5
-    },
-    heroAuraTwo: {
-      position: 'absolute',
-      bottom: -80,
-      left: -40,
-      width: 220,
-      height: 220,
-      borderRadius: 999,
-      backgroundColor:
-        theme.mode === 'dark' ? 'rgba(79,124,130,0.12)' : 'rgba(79,124,130,0.10)',
-      opacity: 0.5
-    },
-    heroTopRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      gap: 20,
+      gap: 10,
+      ...theme.shadows.soft,
     },
     eyebrow: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 11,
-      letterSpacing: 2.5,
+      letterSpacing: 2.2,
       textTransform: 'uppercase',
-      color: theme.colors.moss,
-      marginBottom: 8,
+      color: theme.colors.plum,
     },
     heroTitle: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 40,
-      lineHeight: 44,
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 34,
+      lineHeight: 38,
+      letterSpacing: -0.6,
       color: theme.colors.ink,
-      maxWidth: 280,
     },
     heroCopy: {
-      marginTop: 20,
       fontFamily: theme.fonts.sansRegular,
       fontSize: 15,
       lineHeight: 26,
       color: theme.colors.muted,
-      maxWidth: 320,
+      maxWidth: 330,
     },
-    composeButton: {
-      height: 52,
-      width: 52,
+    quickRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 10,
+    },
+    quickAction: {
+      flex: 1,
       borderRadius: 18,
-      backgroundColor: theme.colors.ink,
+      backgroundColor: theme.mode === 'dark' ? theme.colors.overlay : 'rgba(255,255,255,0.58)',
+      borderWidth: 1,
+      borderColor: theme.mode === 'dark' ? theme.colors.overlayStrong : 'rgba(255,255,255,0.7)',
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      gap: 10,
       alignItems: 'center',
       justifyContent: 'center',
-      shadowColor: theme.colors.ink,
-      shadowOpacity: 0.16,
-      shadowRadius: 18,
-      shadowOffset: { width: 0, height: 10 },
-      elevation: 4,
     },
-    filterRow: {
-      gap: 12,
-      paddingTop: 24,
+    quickActionIcon: {
+      height: 28,
+      width: 28,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.mode === 'dark' ? theme.colors.cardMuted : theme.colors.card,
     },
-    filterChip: {
-      paddingHorizontal: 18,
-      paddingVertical: 11,
-      borderRadius: 999,
-      backgroundColor:
-        theme.mode === 'dark' ? theme.colors.overlay : 'rgba(255,255,255,0.66)',
-      borderWidth: 1,
-      borderColor:
-        theme.mode === 'dark'
-          ? theme.colors.overlayStrong
-          : 'rgba(53, 64, 52, 0.08)',
-    },
-    filterChipActive: {
-      backgroundColor: theme.colors.ink,
-    },
-    filterLabel: {
+    quickActionLabel: {
       fontFamily: theme.fonts.sansMedium,
-      fontSize: 13,
+      fontSize: 12,
       color: theme.colors.ink,
     },
-    filterLabelActive: {
-      color: theme.colors.card,
+    sectionHeader: {
+      paddingHorizontal: layout.screenPadding,
+      paddingTop: 12,
+      gap: 6,
     },
-    postsColumn: {
-      gap: 20,
-      paddingHorizontal: 20,
+    sectionEyebrow: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 11,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      color: theme.colors.plum,
+    },
+    sectionTitle: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 24,
+      lineHeight: 29,
+      letterSpacing: -0.4,
+      color: theme.colors.ink,
+    },
+    signalGrid: {
+      paddingHorizontal: layout.screenPadding,
+      gap: layout.itemGap,
+    },
+    threadColumn: {
+      paddingHorizontal: layout.screenPadding,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: theme.colors.line,
     },
     stateCard: {
-      marginHorizontal: 20,
-      borderRadius: 24,
+      marginHorizontal: layout.screenPadding,
+      borderRadius: layout.radiusCard + 2,
       backgroundColor: theme.colors.card,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
+      padding: layout.modalPadding,
       gap: 10,
-      alignItems: 'flex-start',
     },
     stateTitle: {
       fontFamily: theme.fonts.sansBold,
@@ -691,23 +467,8 @@ function createStyles(theme: AppTheme) {
       lineHeight: 23,
       color: theme.colors.muted,
     },
-    inlineErrorCard: {
-      marginHorizontal: 20,
-      borderRadius: 18,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      backgroundColor: theme.colors.card,
-      borderWidth: 1,
-      borderColor: '#D7B4A8',
-    },
-    inlineErrorText: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 13,
-      lineHeight: 20,
-      color: '#A84E3B',
-    },
     retryButton: {
-      marginTop: 4,
+      alignSelf: 'flex-start',
       borderRadius: 999,
       paddingHorizontal: 14,
       paddingVertical: 10,
@@ -715,140 +476,19 @@ function createStyles(theme: AppTheme) {
     },
     retryLabel: {
       fontFamily: theme.fonts.sansBold,
-      color: theme.colors.card,
       fontSize: 13,
+      color: theme.colors.card,
     },
-    loadMoreButton: {
+    primaryButton: {
+      marginHorizontal: layout.screenPadding,
       minHeight: 52,
-      borderRadius: 18,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      backgroundColor: theme.colors.card,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    loadMoreLabel: {
-      fontFamily: theme.fonts.sansBold,
-      fontSize: 14,
-      color: theme.colors.ink,
-    },
-    modalBackdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.32)',
-      justifyContent: 'center',
-      padding: 20,
-    },
-    modalCard: {
-      borderRadius: 28,
-      backgroundColor: theme.colors.card,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      padding: 22,
-      gap: 18,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    modalTitle: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 28,
-      color: theme.colors.ink,
-    },
-    modalTypeRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 10,
-    },
-    modalTypeChip: {
-      borderRadius: 999,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      backgroundColor: theme.colors.cardMuted,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-    },
-    modalTypeChipActive: {
-      backgroundColor: theme.colors.ink,
-      borderColor: theme.colors.ink,
-    },
-    modalTypeLabel: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 13,
-      color: theme.colors.ink,
-    },
-    modalTypeLabelActive: {
-      color: theme.colors.card,
-    },
-    attachmentActions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 10,
-    },
-    attachmentPickerButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      borderRadius: 999,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-      backgroundColor: theme.colors.cardMuted,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-    },
-    attachmentPickerLabel: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 13,
-      color: theme.colors.ink,
-    },
-    attachmentList: {
-      gap: 8,
-    },
-    attachmentItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 12,
-      borderRadius: 16,
-      backgroundColor: theme.colors.cardMuted,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-    },
-    attachmentItemCopy: {
-      flex: 1,
-      gap: 2,
-    },
-    attachmentName: {
-      fontFamily: theme.fonts.sansMedium,
-      fontSize: 13,
-      color: theme.colors.ink,
-    },
-    attachmentMeta: {
-      fontFamily: theme.fonts.sansRegular,
-      fontSize: 12,
-      color: theme.colors.muted,
-    },
-    modalFooter: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      alignItems: 'center',
-      gap: 16,
-    },
-    publishButton: {
-      minHeight: 48,
-      borderRadius: 16,
-      paddingHorizontal: 18,
+      borderRadius: layout.radiusTile,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.ink,
+      marginTop: 4,
     },
-    publishButtonDisabled: {
-      opacity: 0.6,
-    },
-    publishLabel: {
+    primaryButtonLabel: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 14,
       color: theme.colors.card,

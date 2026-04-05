@@ -10,11 +10,18 @@ export type PostMedia = {
 
 export type UploadableMediaType = PostMedia['type'];
 
+export type MilestoneBadge = {
+  kind: 'BUILDING' | 'LEARNING' | 'STRUGGLING';
+  label: string;
+  threshold: number;
+};
+
 export type PostAuthor = {
   id: string;
   username: string;
   name?: string | null;
   avatarUrl?: string | null;
+  badges: MilestoneBadge[];
 };
 
 export type FeedPost = {

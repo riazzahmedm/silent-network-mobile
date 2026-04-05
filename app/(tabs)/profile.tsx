@@ -1,7 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,13 +14,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/auth/AuthContext';
-import { buildMapRowsFromDays } from '../../src/components/BuildMapCard';
-import { BuildMapMiniCard } from '../../src/components/BuildMapMiniCard';
+import { buildMapRowsFromDays, BuildMapCard } from '../../src/components/BuildMapCard';
+import { MilestoneBadgePill } from '../../src/components/MilestoneBadgePill';
+import { SectionHeading } from '../../src/components/SectionHeading';
+import { SignalMetricCard, toSignalCardMetric } from '../../src/components/SignalMetricCard';
 import { api, ApiError } from '../../src/lib/api';
+import { layout } from '../../src/ui/layout';
 import type { BuildMapResponse, SignalsResponse } from '../../src/types/signals';
 import { AppTheme, useTheme } from '../../src/theme';
 
 export default function ProfileScreen() {
+  const tabBarHeight = useBottomTabBarHeight();
   const { accessToken, user, logout } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
   const styles = createStyles(theme);
@@ -27,6 +33,7 @@ export default function ProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
   const loadData = useCallback(
     async (refresh = false) => {
@@ -71,6 +78,17 @@ export default function ProfileScreen() {
     () => buildMapRowsFromDays(buildMap?.days ?? []),
     [buildMap],
   );
+  const signalCards = useMemo(() => {
+    if (!signals) {
+      return [];
+    }
+
+    return [
+      toSignalCardMetric(signals.builderSignal, 'building'),
+      toSignalCardMetric(signals.learningSignal, 'learning'),
+      toSignalCardMetric(signals.struggleSignal, 'struggling'),
+    ];
+  }, [signals]);
 
   const profileName = signals?.user.name || user?.name || signals?.user.username || user?.username || 'Developer';
   const profileHandle = signals?.user.username || user?.username || 'dev';
@@ -103,7 +121,10 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: tabBarHeight + 34 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -136,6 +157,16 @@ export default function ProfileScreen() {
           <Text style={styles.bio}>
             {user?.email || 'Shipping calm software for developers who want signal, not status.'}
           </Text>
+          {signals?.user.badges?.length ? (
+            <View style={styles.badgesRow}>
+              {signals.user.badges.map((badge) => (
+                <MilestoneBadgePill
+                  key={`${badge.kind}-${badge.label}`}
+                  badge={badge}
+                />
+              ))}
+            </View>
+          ) : null}
         </LinearGradient>
 
         {isLoading ? (
@@ -179,14 +210,68 @@ export default function ProfileScreen() {
               ))}
             </View>
 
-            <BuildMapMiniCard rows={buildMapRows} />
+            <SectionHeading
+              eyebrow="Signals"
+              title="Your developer signals"
+              detail="Consistency, learning, and debugging history live inside your profile."
+            />
+
+            <View style={styles.signalGrid}>
+              {signalCards.map((signal) => (
+                <SignalMetricCard key={signal.title} signal={signal} />
+              ))}
+            </View>
+
+            <SectionHeading
+              eyebrow="Journey"
+              title="Your developer map"
+              detail="Multiple updates on one day become layered tiles instead of a single flattened status."
+            />
+
+            <BuildMapCard rows={buildMapRows} />
           </>
         )}
 
-        <Pressable style={styles.logoutButton} onPress={logout}>
+        <Pressable
+          style={styles.logoutButton}
+          onPress={() => setIsLogoutConfirmOpen(true)}
+        >
           <Text style={styles.logoutLabel}>Log out</Text>
         </Pressable>
       </ScrollView>
+
+      <Modal
+        visible={isLogoutConfirmOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsLogoutConfirmOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Log out?</Text>
+            <Text style={styles.confirmText}>
+              Your session will be cleared on this device. You can log back in anytime.
+            </Text>
+            <View style={styles.confirmActions}>
+              <Pressable
+                style={styles.cancelButton}
+                onPress={() => setIsLogoutConfirmOpen(false)}
+              >
+                <Text style={styles.cancelLabel}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={styles.confirmButton}
+                onPress={() => {
+                  setIsLogoutConfirmOpen(false);
+                  void logout();
+                }}
+              >
+                <Text style={styles.confirmLabel}>Log out</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -198,15 +283,17 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.paper,
     },
     content: {
-      paddingHorizontal: 20,
+      paddingHorizontal: layout.screenPadding,
       paddingTop: 10,
-      paddingBottom: 148,
-      gap: 22,
+      gap: layout.modalPadding,
     },
     hero: {
-      borderRadius: 34,
-      padding: 28,
+      borderRadius: layout.radiusHero,
+      padding: layout.heroPadding,
       gap: 10,
+      borderWidth: 1,
+      borderColor: theme.mode === 'dark' ? theme.colors.line : 'rgba(255,255,255,0.7)',
+      ...theme.shadows.soft,
     },
     heroHeaderRow: {
       flexDirection: 'row',
@@ -220,12 +307,12 @@ function createStyles(theme: AppTheme) {
       paddingHorizontal: 12,
       paddingVertical: 7,
       backgroundColor:
-        theme.mode === 'dark' ? theme.colors.overlay : 'rgba(255,255,255,0.4)',
+        theme.mode === 'dark' ? theme.colors.overlay : 'rgba(255,255,255,0.56)',
       borderWidth: 1,
       borderColor:
         theme.mode === 'dark'
           ? theme.colors.overlayStrong
-          : 'rgba(255,255,255,0.45)',
+          : 'rgba(255,255,255,0.7)',
     },
     heroChipLabel: {
       fontFamily: theme.fonts.sansBold,
@@ -236,21 +323,23 @@ function createStyles(theme: AppTheme) {
     },
     themeToggle: {
       borderRadius: 999,
-      paddingHorizontal: 12,
+      paddingHorizontal: 13,
       paddingVertical: 8,
-      backgroundColor: theme.colors.ink,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
     },
     themeToggleLabel: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 11,
       letterSpacing: 1.3,
       textTransform: 'uppercase',
-      color: theme.colors.card,
+      color: theme.colors.ink,
     },
     avatar: {
       height: 68,
       width: 68,
-      borderRadius: 24,
+      borderRadius: 20,
       backgroundColor: theme.colors.ink,
       alignItems: 'center',
       justifyContent: 'center',
@@ -262,8 +351,9 @@ function createStyles(theme: AppTheme) {
       fontSize: 24,
     },
     name: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 38,
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 32,
+      letterSpacing: -0.6,
       color: theme.colors.ink,
     },
     role: {
@@ -279,22 +369,29 @@ function createStyles(theme: AppTheme) {
       maxWidth: 300,
       marginTop: 6,
     },
+    badgesRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginTop: 10,
+    },
     metricsRow: {
       flexDirection: 'row',
-      gap: 14,
+      gap: layout.itemGap,
     },
     metricTile: {
       flex: 1,
-      borderRadius: 24,
-      backgroundColor: theme.colors.card,
+      borderRadius: 18,
+      backgroundColor: theme.colors.cardMuted,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 18,
-      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      gap: 6,
     },
     metricValue: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 26,
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 22,
       color: theme.colors.ink,
     },
     metricLabel: {
@@ -303,11 +400,9 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.muted,
     },
     section: {
-      borderRadius: 24,
-      backgroundColor: theme.colors.card,
-      borderWidth: 1,
-      borderColor: theme.colors.line,
-      padding: 20,
+      borderRadius: 20,
+      backgroundColor: theme.colors.cardMuted,
+      padding: 18,
       gap: 16,
     },
     sectionEyebrow: {
@@ -332,8 +427,11 @@ function createStyles(theme: AppTheme) {
       fontSize: 14,
       color: theme.colors.muted,
     },
+    signalGrid: {
+      gap: layout.itemGap,
+    },
     logoutButton: {
-      borderRadius: 18,
+      borderRadius: layout.radiusTile,
       borderWidth: 1,
       borderColor: theme.colors.line,
       backgroundColor: theme.colors.cardMuted,
@@ -347,11 +445,11 @@ function createStyles(theme: AppTheme) {
       fontSize: 14,
     },
     stateCard: {
-      borderRadius: 24,
+      borderRadius: layout.radiusCard + 2,
       backgroundColor: theme.colors.card,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
+      padding: layout.modalPadding,
       gap: 10,
     },
     stateTitle: {
@@ -375,6 +473,68 @@ function createStyles(theme: AppTheme) {
     retryLabel: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 13,
+      color: theme.colors.card,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(17, 16, 14, 0.26)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 24,
+    },
+    confirmCard: {
+      width: '100%',
+      borderRadius: layout.radiusModal,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+      padding: layout.modalPadding,
+      gap: layout.itemGap,
+      ...theme.shadows.float,
+    },
+    confirmTitle: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 18,
+      color: theme.colors.ink,
+    },
+    confirmText: {
+      fontFamily: theme.fonts.sansRegular,
+      fontSize: 14,
+      lineHeight: 22,
+      color: theme.colors.muted,
+    },
+    confirmActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+      marginTop: 4,
+    },
+    cancelButton: {
+      minHeight: 46,
+      borderRadius: 16,
+      paddingHorizontal: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
+    },
+    cancelLabel: {
+      fontFamily: theme.fonts.sansMedium,
+      fontSize: 14,
+      color: theme.colors.ink,
+    },
+    confirmButton: {
+      minHeight: 46,
+      borderRadius: 16,
+      paddingHorizontal: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.ink,
+    },
+    confirmLabel: {
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 14,
       color: theme.colors.card,
     },
   });

@@ -92,7 +92,6 @@ function createStyles(theme: AppTheme) {
       borderWidth: 1,
       borderColor: theme.colors.line,
       padding: 20,
-      marginHorizontal: 20,
       gap: 16,
     },
     grid: {

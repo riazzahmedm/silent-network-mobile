@@ -22,7 +22,6 @@ export default function WelcomeScreen() {
           Interaction happens through private conversations like “I can help debug this”
           and “I shipped something similar”, not public comment ladders.
         </Text>
-        <Text style={styles.endpoint}>API: {api.baseUrl}</Text>
       </View>
 
       <AuthButton
@@ -86,7 +85,7 @@ function createStyles(theme: AppTheme) {
   link: {
     textAlign: 'center',
     fontFamily: theme.fonts.sansBold,
-    color: theme.colors.accentBlue,
+    color: theme.colors.ink,
     fontSize: 14,
   },
   linkSecondary: {

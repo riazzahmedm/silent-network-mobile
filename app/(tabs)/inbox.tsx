@@ -1,3 +1,4 @@
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -14,10 +15,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/auth/AuthContext';
 import { ConversationPreviewCard } from '../../src/components/ConversationPreviewCard';
 import { api, ApiError } from '../../src/lib/api';
+import { layout } from '../../src/ui/layout';
 import type { ConversationListItem } from '../../src/types/messaging';
 import { AppTheme, useTheme } from '../../src/theme';
 
 export default function InboxScreen() {
+  const tabBarHeight = useBottomTabBarHeight();
   const { accessToken, user } = useAuth();
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -84,7 +87,10 @@ export default function InboxScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: tabBarHeight + 34 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -209,28 +215,31 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.paper,
     },
     content: {
-      paddingHorizontal: 20,
+      paddingHorizontal: layout.screenPadding,
       paddingTop: 8,
-      paddingBottom: 120,
     },
     hero: {
-      borderRadius: 28,
-      padding: 22,
+      borderRadius: layout.radiusHero,
+      padding: layout.modalPadding,
+      borderWidth: 1,
+      borderColor: theme.mode === 'dark' ? theme.colors.line : 'rgba(255,255,255,0.7)',
+      ...theme.shadows.soft,
     },
     eyebrow: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 11,
       letterSpacing: 2.2,
       textTransform: 'uppercase',
-      color: theme.colors.amber,
+      color: theme.colors.plum,
       marginBottom: 8,
     },
     title: {
-      fontFamily: theme.fonts.serif,
-      fontSize: 34,
-      lineHeight: 39,
+      fontFamily: theme.fonts.sansBold,
+      fontSize: 30,
+      lineHeight: 34,
+      letterSpacing: -0.5,
       color: theme.colors.ink,
-      marginBottom: 10,
+      marginBottom: 8,
     },
     copy: {
       fontFamily: theme.fonts.sansRegular,
@@ -240,16 +249,19 @@ function createStyles(theme: AppTheme) {
       maxWidth: 330,
     },
     threadColumn: {
-      gap: 14,
-      marginTop: 24,
+      gap: layout.itemGap,
+      marginTop: layout.heroPadding,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: theme.colors.line,
     },
     stateCard: {
-      marginTop: 24,
-      borderRadius: 24,
+      marginTop: layout.heroPadding,
+      borderRadius: layout.radiusCard + 2,
       backgroundColor: theme.colors.card,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
+      padding: layout.modalPadding,
       gap: 10,
     },
     stateTitle: {
