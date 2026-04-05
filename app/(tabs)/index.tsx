@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -22,6 +23,7 @@ import { ConversationPreviewCard } from '../../src/components/ConversationPrevie
 import { FeedComposerCard } from '../../src/components/FeedComposerCard';
 import { SignalMetricCard, toSignalCardMetric } from '../../src/components/SignalMetricCard';
 import { api, ApiError } from '../../src/lib/api';
+import { layout } from '../../src/ui/layout';
 import type { ConversationListItem } from '../../src/types/messaging';
 import type { BuildMapResponse, SignalsResponse } from '../../src/types/signals';
 import { AppTheme, useTheme } from '../../src/theme';
@@ -33,6 +35,7 @@ type DashboardState = {
 };
 
 export default function HomeScreen() {
+  const tabBarHeight = useBottomTabBarHeight();
   const { accessToken, user } = useAuth();
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -129,7 +132,10 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: tabBarHeight + 34 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -175,6 +181,7 @@ export default function HomeScreen() {
 
         <AnimatedEntrance delay={60}>
           <FeedComposerCard
+            fullWidth
             onSelectType={(type) =>
               router.push({
                 pathname: '/(tabs)/feed',
@@ -272,7 +279,9 @@ function QuickAction({
 
   return (
     <AnimatedPressable style={styles.quickAction} scaleTo={0.97} onPress={onPress}>
-      <Ionicons name={icon} size={18} color={theme.colors.ink} />
+      <View style={styles.quickActionIcon}>
+        <Ionicons name={icon} size={16} color={theme.colors.ink} />
+      </View>
       <Text style={styles.quickActionLabel}>{label}</Text>
     </AnimatedPressable>
   );
@@ -344,17 +353,19 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.paper,
     },
     content: {
-      paddingBottom: 148,
-      gap: 18,
+      gap: layout.sectionGap,
     },
     hero: {
-      paddingHorizontal: 24,
-      paddingTop: 24,
-      paddingBottom: 28,
-      borderBottomLeftRadius: 36,
-      borderBottomRightRadius: 36,
+      marginHorizontal: layout.screenPadding - 4,
+      paddingHorizontal: layout.heroPadding,
+      paddingTop: layout.heroPadding,
+      paddingBottom: layout.heroPadding + 4,
+      borderRadius: layout.radiusHero + 2,
+      borderWidth: 1,
+      borderColor: theme.mode === 'dark' ? theme.colors.line : 'rgba(255,255,255,0.7)',
       overflow: 'hidden',
       gap: 10,
+      ...theme.shadows.soft,
     },
     eyebrow: {
       fontFamily: theme.fonts.sansBold,
@@ -380,17 +391,27 @@ function createStyles(theme: AppTheme) {
     quickRow: {
       flexDirection: 'row',
       gap: 10,
-      marginTop: 8,
+      marginTop: 10,
     },
     quickAction: {
       flex: 1,
-      borderRadius: 16,
-      backgroundColor: theme.colors.cardMuted,
-      paddingVertical: 13,
+      borderRadius: 18,
+      backgroundColor: theme.mode === 'dark' ? theme.colors.overlay : 'rgba(255,255,255,0.58)',
+      borderWidth: 1,
+      borderColor: theme.mode === 'dark' ? theme.colors.overlayStrong : 'rgba(255,255,255,0.7)',
+      paddingVertical: 14,
       paddingHorizontal: 12,
-      gap: 8,
+      gap: 10,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    quickActionIcon: {
+      height: 28,
+      width: 28,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.mode === 'dark' ? theme.colors.cardMuted : theme.colors.card,
     },
     quickActionLabel: {
       fontFamily: theme.fonts.sansMedium,
@@ -398,7 +419,7 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.ink,
     },
     sectionHeader: {
-      paddingHorizontal: 20,
+      paddingHorizontal: layout.screenPadding,
       paddingTop: 12,
       gap: 6,
     },
@@ -417,22 +438,22 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.ink,
     },
     signalGrid: {
-      paddingHorizontal: 20,
-      gap: 14,
+      paddingHorizontal: layout.screenPadding,
+      gap: layout.itemGap,
     },
     threadColumn: {
-      paddingHorizontal: 20,
+      paddingHorizontal: layout.screenPadding,
       borderTopWidth: 1,
       borderBottomWidth: 1,
       borderColor: theme.colors.line,
     },
     stateCard: {
-      marginHorizontal: 20,
-      borderRadius: 24,
+      marginHorizontal: layout.screenPadding,
+      borderRadius: layout.radiusCard + 2,
       backgroundColor: theme.colors.card,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
+      padding: layout.modalPadding,
       gap: 10,
     },
     stateTitle: {
@@ -459,9 +480,9 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.card,
     },
     primaryButton: {
-      marginHorizontal: 20,
+      marginHorizontal: layout.screenPadding,
       minHeight: 52,
-      borderRadius: 18,
+      borderRadius: layout.radiusTile,
       alignItems: 'center',
       justifyContent: 'center',
       backgroundColor: theme.colors.ink,

@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { AppTheme, useTheme } from '../theme';
+import { layout } from '../ui/layout';
 
 type SectionHeadingProps = {
   eyebrow: string;
@@ -27,8 +28,8 @@ export function SectionHeading({
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     container: {
-      paddingTop: 38,
-      paddingBottom: 22,
+      paddingTop: layout.heroPadding + layout.itemGap,
+      paddingBottom: layout.modalPadding,
     },
     eyebrow: {
       fontFamily: theme.fonts.sansBold,

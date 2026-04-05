@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -23,6 +24,7 @@ import { MarkdownComposer } from '../../src/components/MarkdownComposer';
 import { api, ApiError } from '../../src/lib/api';
 import { POST_CONTENT_MAX_LENGTH } from '../../src/posts/markdown';
 import { usePostMutations } from '../../src/posts/PostMutationsContext';
+import { layout } from '../../src/ui/layout';
 import type { FeedPost, PostType, UploadableMediaType } from '../../src/types/feed';
 import type { InteractionType } from '../../src/types/messaging';
 import { AppTheme, useTheme } from '../../src/theme';
@@ -37,6 +39,7 @@ type PendingAttachment = {
 };
 
 export default function FeedScreen() {
+  const tabBarHeight = useBottomTabBarHeight();
   const params = useLocalSearchParams<{ compose?: string; type?: PostType }>();
   const { accessToken, user } = useAuth();
   const { lastMutation } = usePostMutations();
@@ -332,7 +335,10 @@ export default function FeedScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: tabBarHeight + 34 },
+        ]}
         stickyHeaderIndices={[1]}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -428,9 +434,19 @@ export default function FeedScreen() {
                   post={post}
                   preferredBadgeKind={selectedType}
                   onPress={(selectedPost) => router.push(`/${'posts'}/${selectedPost.id}`)}
+                  onModerationPress={(selectedPost) =>
+                    router.push({
+                      pathname: '/posts/[id]',
+                      params: {
+                        id: selectedPost.id,
+                        moderate: '1',
+                      },
+                    })
+                  }
                   onActionPress={handleInteraction}
                   disabled={activeInteractionPostId === post.id}
                   hideActions={post.userId === user?.id}
+                  showModerationAction={post.userId !== user?.id}
                 />
               </AnimatedEntrance>
             ))}
@@ -568,30 +584,29 @@ function createStyles(theme: AppTheme) {
     },
     content: {
       paddingTop: 10,
-      paddingBottom: 148,
     },
     headerIntro: {
-      marginHorizontal: 20,
-      paddingHorizontal: 4,
-      paddingTop: 12,
-      paddingBottom: 12,
-      marginBottom: 14,
+      marginHorizontal: layout.screenPadding,
+      paddingHorizontal: 2,
+      paddingTop: layout.itemGap,
+      paddingBottom: layout.itemGap,
+      marginBottom: layout.itemGap,
     },
     stickyBar: {
-      marginHorizontal: 20,
-      marginBottom: 4,
-      borderRadius: 18,
+      marginHorizontal: layout.screenPadding,
+      marginBottom: 6,
+      borderRadius: layout.radiusCard - 2,
       backgroundColor:
-        theme.mode === 'dark' ? 'rgba(31, 37, 43, 0.88)' : 'rgba(252, 250, 246, 0.88)',
+        theme.mode === 'dark' ? 'rgba(26, 34, 43, 0.92)' : 'rgba(255, 255, 255, 0.92)',
       borderWidth: 1,
       borderColor: theme.colors.line,
-      paddingHorizontal: 10,
-      paddingVertical: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
       zIndex: 10,
       shadowColor: theme.colors.ink,
-      shadowOpacity: theme.mode === 'dark' ? 0.16 : 0.05,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: theme.mode === 'dark' ? 0.18 : 0.08,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 10 },
       elevation: 4,
     },
     eyebrow: {
@@ -610,11 +625,12 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.ink,
     },
     headerDetail: {
-      marginTop: 10,
+      marginTop: 8,
       fontFamily: theme.fonts.sansRegular,
       fontSize: 14,
       lineHeight: 23,
       color: theme.colors.muted,
+      maxWidth: 320,
     },
     stickyRail: {
       gap: 8,
@@ -622,10 +638,10 @@ function createStyles(theme: AppTheme) {
       paddingRight: 4,
     },
     composeButton: {
-      minHeight: 36,
-      borderRadius: 12,
+      minHeight: 38,
+      borderRadius: 14,
       backgroundColor: theme.colors.ink,
-      paddingHorizontal: 11,
+      paddingHorizontal: 13,
       alignItems: 'center',
       justifyContent: 'center',
       flexDirection: 'row',
@@ -646,12 +662,12 @@ function createStyles(theme: AppTheme) {
       paddingVertical: 8,
       borderRadius: 999,
       backgroundColor:
-        theme.mode === 'dark' ? theme.colors.overlay : 'rgba(255,255,255,0.66)',
+        theme.mode === 'dark' ? theme.colors.overlay : theme.colors.cardMuted,
       borderWidth: 1,
       borderColor:
         theme.mode === 'dark'
           ? theme.colors.overlayStrong
-          : 'rgba(53, 64, 52, 0.08)',
+          : theme.colors.line,
     },
     filterChipActive: {
       backgroundColor: theme.colors.ink,
@@ -665,17 +681,17 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.card,
     },
     postsColumn: {
-      gap: 18,
-      paddingHorizontal: 20,
+      gap: layout.sectionGap,
+      paddingHorizontal: layout.screenPadding,
       paddingTop: 10,
     },
     stateCard: {
-      marginHorizontal: 20,
-      borderRadius: 24,
+      marginHorizontal: layout.screenPadding,
+      borderRadius: layout.radiusCard + 2,
       backgroundColor: theme.colors.card,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
+      padding: layout.modalPadding,
       gap: 10,
       alignItems: 'flex-start',
     },
@@ -691,8 +707,8 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.muted,
     },
     inlineErrorCard: {
-      marginHorizontal: 20,
-      borderRadius: 18,
+      marginHorizontal: layout.screenPadding,
+      borderRadius: layout.radiusTile,
       paddingHorizontal: 16,
       paddingVertical: 14,
       backgroundColor: theme.colors.card,
@@ -719,7 +735,7 @@ function createStyles(theme: AppTheme) {
     },
     loadMoreButton: {
       minHeight: 52,
-      borderRadius: 18,
+      borderRadius: layout.radiusTile,
       borderWidth: 1,
       borderColor: theme.colors.line,
       backgroundColor: theme.colors.card,
@@ -738,12 +754,12 @@ function createStyles(theme: AppTheme) {
       padding: 20,
     },
     modalCard: {
-      borderRadius: 28,
+      borderRadius: layout.radiusModal,
       backgroundColor: theme.colors.card,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
-      gap: 18,
+      padding: layout.modalPadding,
+      gap: layout.sectionGap,
     },
     modalHeader: {
       flexDirection: 'row',

@@ -1,6 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 import type { SignalMetric as SignalMetricData } from '../types/signals';
 import { AppTheme, useTheme } from '../theme';
+import { layout } from '../ui/layout';
 
 type SignalMetricTone = 'building' | 'learning' | 'struggling';
 
@@ -25,12 +27,18 @@ export function SignalMetricCard({ signal }: SignalMetricCardProps) {
     struggling: theme.colors.struggling,
   } as const;
   const tone = toneMap[signal.tone];
+  const iconMap = {
+    building: 'hammer-outline',
+    learning: 'book-outline',
+    struggling: 'construct-outline',
+  } as const;
+  const icon = iconMap[signal.tone];
 
   return (
     <View style={[styles.card, { borderLeftColor: tone }]}>
       <View style={styles.topRow}>
         <View style={[styles.iconBadge, { backgroundColor: `${tone}16` }]}>
-          <View style={[styles.iconDot, { backgroundColor: tone }]} />
+          <Ionicons name={icon} size={18} color={tone} />
         </View>
         <Text style={styles.value}>
           {signal.value}
@@ -48,13 +56,13 @@ export function SignalMetricCard({ signal }: SignalMetricCardProps) {
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     card: {
-      borderRadius: 20,
+      borderRadius: layout.radiusCard - 2,
       backgroundColor: theme.colors.cardMuted,
       borderWidth: 1,
       borderColor: theme.colors.line,
       borderLeftWidth: 4,
       paddingHorizontal: 16,
-      paddingVertical: 14,
+      paddingVertical: layout.itemGap,
       gap: 12,
     },
     topRow: {
@@ -69,11 +77,6 @@ function createStyles(theme: AppTheme) {
       borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    iconDot: {
-      height: 14,
-      width: 14,
-      borderRadius: 999,
     },
     bottomRow: {
       flexDirection: 'row',

@@ -113,7 +113,7 @@ function createStyles(theme: AppTheme) {
     link: {
       textAlign: 'center',
       fontFamily: theme.fonts.sansMedium,
-      color: theme.colors.accentBlue,
+      color: theme.colors.ink,
       fontSize: 14,
     },
   });

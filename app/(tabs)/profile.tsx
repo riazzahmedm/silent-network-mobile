@@ -1,4 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,10 +19,12 @@ import { MilestoneBadgePill } from '../../src/components/MilestoneBadgePill';
 import { SectionHeading } from '../../src/components/SectionHeading';
 import { SignalMetricCard, toSignalCardMetric } from '../../src/components/SignalMetricCard';
 import { api, ApiError } from '../../src/lib/api';
+import { layout } from '../../src/ui/layout';
 import type { BuildMapResponse, SignalsResponse } from '../../src/types/signals';
 import { AppTheme, useTheme } from '../../src/theme';
 
 export default function ProfileScreen() {
+  const tabBarHeight = useBottomTabBarHeight();
   const { accessToken, user, logout } = useAuth();
   const { theme, isDark, toggleTheme } = useTheme();
   const styles = createStyles(theme);
@@ -118,7 +121,10 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: tabBarHeight + 34 },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -277,15 +283,17 @@ function createStyles(theme: AppTheme) {
       backgroundColor: theme.colors.paper,
     },
     content: {
-      paddingHorizontal: 20,
+      paddingHorizontal: layout.screenPadding,
       paddingTop: 10,
-      paddingBottom: 148,
-      gap: 22,
+      gap: layout.modalPadding,
     },
     hero: {
-      borderRadius: 28,
-      padding: 24,
+      borderRadius: layout.radiusHero,
+      padding: layout.heroPadding,
       gap: 10,
+      borderWidth: 1,
+      borderColor: theme.mode === 'dark' ? theme.colors.line : 'rgba(255,255,255,0.7)',
+      ...theme.shadows.soft,
     },
     heroHeaderRow: {
       flexDirection: 'row',
@@ -299,12 +307,12 @@ function createStyles(theme: AppTheme) {
       paddingHorizontal: 12,
       paddingVertical: 7,
       backgroundColor:
-        theme.mode === 'dark' ? theme.colors.overlay : 'rgba(255,255,255,0.4)',
+        theme.mode === 'dark' ? theme.colors.overlay : 'rgba(255,255,255,0.56)',
       borderWidth: 1,
       borderColor:
         theme.mode === 'dark'
           ? theme.colors.overlayStrong
-          : 'rgba(255,255,255,0.45)',
+          : 'rgba(255,255,255,0.7)',
     },
     heroChipLabel: {
       fontFamily: theme.fonts.sansBold,
@@ -315,16 +323,18 @@ function createStyles(theme: AppTheme) {
     },
     themeToggle: {
       borderRadius: 999,
-      paddingHorizontal: 12,
+      paddingHorizontal: 13,
       paddingVertical: 8,
-      backgroundColor: theme.colors.ink,
+      backgroundColor: theme.colors.card,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
     },
     themeToggleLabel: {
       fontFamily: theme.fonts.sansBold,
       fontSize: 11,
       letterSpacing: 1.3,
       textTransform: 'uppercase',
-      color: theme.colors.card,
+      color: theme.colors.ink,
     },
     avatar: {
       height: 68,
@@ -367,12 +377,14 @@ function createStyles(theme: AppTheme) {
     },
     metricsRow: {
       flexDirection: 'row',
-      gap: 14,
+      gap: layout.itemGap,
     },
     metricTile: {
       flex: 1,
       borderRadius: 18,
       backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
       paddingHorizontal: 16,
       paddingVertical: 14,
       gap: 6,
@@ -416,10 +428,10 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.muted,
     },
     signalGrid: {
-      gap: 14,
+      gap: layout.itemGap,
     },
     logoutButton: {
-      borderRadius: 18,
+      borderRadius: layout.radiusTile,
       borderWidth: 1,
       borderColor: theme.colors.line,
       backgroundColor: theme.colors.cardMuted,
@@ -433,11 +445,11 @@ function createStyles(theme: AppTheme) {
       fontSize: 14,
     },
     stateCard: {
-      borderRadius: 24,
+      borderRadius: layout.radiusCard + 2,
       backgroundColor: theme.colors.card,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
+      padding: layout.modalPadding,
       gap: 10,
     },
     stateTitle: {
@@ -472,12 +484,12 @@ function createStyles(theme: AppTheme) {
     },
     confirmCard: {
       width: '100%',
-      borderRadius: 28,
+      borderRadius: layout.radiusModal,
       backgroundColor: theme.colors.card,
       borderWidth: 1,
       borderColor: theme.colors.line,
-      padding: 22,
-      gap: 14,
+      padding: layout.modalPadding,
+      gap: layout.itemGap,
       ...theme.shadows.float,
     },
     confirmTitle: {

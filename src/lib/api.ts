@@ -18,6 +18,12 @@ import type {
   SignalsResponse,
 } from '../types/signals';
 import type {
+  PostReportResponse,
+  ReportPostPayload,
+  SpamFlagResponse,
+  UserBlockResponse,
+} from '../types/moderation';
+import type {
   ConversationListItem,
   ConversationThread,
   InteractionThreadResponse,
@@ -257,6 +263,26 @@ export const api = {
       method: 'POST',
       token,
       body: payload,
+    });
+  },
+  reportPost(payload: ReportPostPayload, token: string) {
+    return request<PostReportResponse>('/security/reports/posts', {
+      method: 'POST',
+      token,
+      body: payload,
+    });
+  },
+  blockUser(userId: string, token: string) {
+    return request<UserBlockResponse>('/security/blocks/users', {
+      method: 'POST',
+      token,
+      body: { userId },
+    });
+  },
+  flagSpam(postId: string, token: string) {
+    return request<SpamFlagResponse>(`/security/spam/posts/${postId}`, {
+      method: 'POST',
+      token,
     });
   },
 };

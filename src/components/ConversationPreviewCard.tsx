@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppTheme, useTheme } from '../theme';
+import { layout } from '../ui/layout';
 
 type ThreadPreview = {
   id: string;
@@ -46,7 +47,7 @@ export function ConversationPreviewCard({
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     card: {
-      paddingVertical: 16,
+      paddingVertical: layout.itemGap + 2,
       borderBottomWidth: 1,
       borderBottomColor: theme.colors.line,
       gap: 8,

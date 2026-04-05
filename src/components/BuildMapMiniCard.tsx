@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { AppTheme, useTheme } from '../theme';
+import { layout } from '../ui/layout';
 
 type BuildMapMiniCardProps = {
   rows: Array<Array<'building' | 'learning' | 'struggling' | 'mixed' | 'empty'>>;
@@ -45,7 +46,7 @@ export function BuildMapMiniCard({ rows }: BuildMapMiniCardProps) {
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     wrapper: {
-      paddingHorizontal: 20,
+      paddingHorizontal: layout.screenPadding,
       gap: 10,
     },
     eyebrow: {
@@ -61,7 +62,7 @@ function createStyles(theme: AppTheme) {
       color: theme.colors.ink,
     },
     gridShell: {
-      borderRadius: 22,
+      borderRadius: layout.radiusCard,
       backgroundColor: theme.colors.cardMuted,
       borderWidth: 1,
       borderColor: theme.colors.line,

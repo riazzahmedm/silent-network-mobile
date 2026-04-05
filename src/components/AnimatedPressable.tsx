@@ -8,6 +8,8 @@ import {
   ViewStyle,
 } from 'react-native';
 
+const AnimatedPressableBase = Animated.createAnimatedComponent(Pressable);
+
 type AnimatedPressableProps = PressableProps & {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -34,8 +36,14 @@ export function AnimatedPressable({
   }
 
   return (
-    <Pressable
+    <AnimatedPressableBase
       {...props}
+      style={[
+        style,
+        {
+          transform: [{ scale }],
+        },
+      ]}
       onPressIn={(event) => {
         animateTo(scaleTo);
         onPressIn?.(event);
@@ -45,16 +53,7 @@ export function AnimatedPressable({
         onPressOut?.(event);
       }}
     >
-      <Animated.View
-        style={[
-          style,
-          {
-            transform: [{ scale }],
-          },
-        ]}
-      >
-        {children}
-      </Animated.View>
-    </Pressable>
+      {children}
+    </AnimatedPressableBase>
   );
 }

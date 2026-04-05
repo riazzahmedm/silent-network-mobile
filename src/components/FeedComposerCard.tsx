@@ -4,15 +4,18 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AnimatedPressable } from './AnimatedPressable';
 import type { PostType } from '../types/feed';
 import { AppTheme, useTheme } from '../theme';
+import { layout } from '../ui/layout';
 
 type FeedComposerCardProps = {
   onSelectType?: (type: PostType) => void;
   disabled?: boolean;
+  fullWidth?: boolean;
 };
 
 export function FeedComposerCard({
   onSelectType,
   disabled,
+  fullWidth = false,
 }: FeedComposerCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -38,7 +41,7 @@ export function FeedComposerCard({
   ] as const;
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, fullWidth && styles.wrapperFullWidth]}>
       <View style={styles.topRow}>
         <View>
           <Text style={styles.kicker}>Share a Signal</Text>
@@ -51,7 +54,11 @@ export function FeedComposerCard({
         {options.map((option) => (
           <AnimatedPressable
             key={option.label}
-            style={[styles.option, disabled && styles.optionDisabled]}
+            style={[
+              styles.option,
+              { borderTopColor: option.tone },
+              disabled && styles.optionDisabled,
+            ]}
             disabled={disabled}
             scaleTo={0.975}
             onPress={() => onSelectType?.(option.type)}
@@ -76,9 +83,12 @@ export function FeedComposerCard({
 function createStyles(theme: AppTheme) {
   return StyleSheet.create({
     wrapper: {
-      marginHorizontal: 20,
+      marginHorizontal: layout.screenPadding,
       marginTop: -10,
-      gap: 14,
+      gap: layout.itemGap,
+    },
+    wrapperFullWidth: {
+      marginHorizontal: layout.screenPadding - 4,
     },
     topRow: {
       flexDirection: 'row',
@@ -109,17 +119,19 @@ function createStyles(theme: AppTheme) {
     },
     row: {
       flexDirection: 'row',
-      gap: 12,
+      gap: 10,
     },
     option: {
       flex: 1,
-      borderRadius: 20,
+      borderRadius: layout.radiusCard - 2,
       backgroundColor: theme.colors.cardMuted,
       borderWidth: 1,
-      borderColor: theme.colors.line,
-      padding: 14,
+      borderColor: `${theme.colors.line}B8`,
+      borderTopWidth: 3,
+      paddingVertical: layout.itemGap,
+      paddingHorizontal: 14,
       gap: 12,
-      overflow: 'hidden',
+      overflow: 'hidden'
     },
     optionGlow: {
       position: 'absolute',
@@ -139,7 +151,7 @@ function createStyles(theme: AppTheme) {
       justifyContent: 'center',
     },
     optionLabel: {
-      fontFamily: theme.fonts.sansMedium,
+      fontFamily: theme.fonts.sansBold,
       color: theme.colors.ink,
       fontSize: 13,
     },

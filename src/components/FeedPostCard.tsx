@@ -12,18 +12,22 @@ type FeedPostCardProps = {
   post: FeedPost;
   onActionPress?: (post: FeedPost, type: InteractionType) => void;
   onPress?: (post: FeedPost) => void;
+  onModerationPress?: (post: FeedPost) => void;
   disabled?: boolean;
   hideActions?: boolean;
   preferredBadgeKind?: MilestoneBadge['kind'];
+  showModerationAction?: boolean;
 };
 
 export function FeedPostCard({
   post,
   onActionPress,
   onPress,
+  onModerationPress,
   disabled,
   hideActions,
   preferredBadgeKind,
+  showModerationAction,
 }: FeedPostCardProps) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
@@ -32,7 +36,13 @@ export function FeedPostCard({
     LEARNING: theme.colors.learning,
     STRUGGLING: theme.colors.struggling,
   } as const;
+  const typeIconMap: Record<PostType, keyof typeof Ionicons.glyphMap> = {
+    BUILDING: 'hammer-outline',
+    LEARNING: 'book-outline',
+    STRUGGLING: 'construct-outline',
+  };
   const tone = toneMap[post.type];
+  const typeIcon = typeIconMap[post.type];
   const authorName = post.user.name || post.user.username;
   const handle = `@${post.user.username}`;
   const primaryBadge = selectPrimaryBadge(post.user.badges, preferredBadgeKind);
@@ -59,10 +69,37 @@ export function FeedPostCard({
       <View style={[styles.accentBar, { backgroundColor: tone }]} />
       <Pressable onPress={() => onPress?.(post)} style={styles.pressableContent}>
         <View style={styles.topRow}>
-          <View style={[styles.typePill, { backgroundColor: `${tone}18` }]}>
+          <View
+            style={[
+              styles.typePill,
+              {
+                backgroundColor: `${tone}18`,
+                borderColor: `${tone}38`,
+              },
+            ]}
+          >
+            <Ionicons name={typeIcon} size={14} color={tone} />
             <Text style={[styles.typeLabel, { color: tone }]}>{formatTypeLabel(post.type)}</Text>
           </View>
-          <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
+          <View style={styles.topRowMeta}>
+            <Text style={styles.time}>{formatRelativeTime(post.createdAt)}</Text>
+            {showModerationAction ? (
+              <Pressable
+                onPress={(event) => {
+                  event.stopPropagation();
+                  onModerationPress?.(post);
+                }}
+                hitSlop={10}
+                style={styles.moreButton}
+              >
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={16}
+                  color={theme.colors.muted}
+                />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
 
         <Text style={styles.content}>{toPlainTextPreview(post.content)}</Text>
@@ -199,13 +236,21 @@ function createStyles(theme: AppTheme) {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      gap: 12,
+    },
+    topRowMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
     },
     typePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
       borderRadius: 999,
       paddingHorizontal: 12,
       paddingVertical: 7,
       borderWidth: 1,
-      borderColor: `${theme.colors.line}90`,
     },
     typeLabel: {
       fontFamily: theme.fonts.sansBold,
@@ -217,6 +262,16 @@ function createStyles(theme: AppTheme) {
       fontFamily: theme.fonts.sansRegular,
       fontSize: 12,
       color: theme.colors.muted,
+    },
+    moreButton: {
+      width: 28,
+      height: 28,
+      borderRadius: 999,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.cardMuted,
+      borderWidth: 1,
+      borderColor: theme.colors.line,
     },
     content: {
       fontFamily: theme.fonts.sansRegular,
